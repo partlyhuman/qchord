@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name "REB_Flash")(type "KiCad")(uri "${KIPRJMOD}/Libraries/AT27C040-70PU.kicad_sym")(options "")(descr ""))
+)
