@@ -1,0 +1,4 @@
+(fp_lib_table
+  (lib (name "REB_Edge")(type "KiCad")(uri "${KIPRJMOD}/Libraries/REB_Edge.pretty")(options "")(descr ""))
+  (lib (name "REB_Flash")(type "KiCad")(uri "${KIPRJMOD}/Libraries/ul_SST39SF040-55-4C-WHE-T.pretty")(options "")(descr ""))
+)
