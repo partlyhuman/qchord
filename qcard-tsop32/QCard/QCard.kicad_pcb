@@ -213,7 +213,7 @@
       (effects (font (size 1 1) (thickness 0.15)))
       (tstamp dba30a22-1667-4653-b5d7-aa024e03ffd7)
     )
-    (fp_text value "SST39SF040" (at 0.199775 0.0475) (layer "F.SilkS")
+    (fp_text value "SST39SF040" (at 0 5.7975) (layer "F.SilkS")
       (effects (font (size 1 1) (thickness 0.15)))
       (tstamp ec737722-f600-419d-8ba2-273919ef8dda)
     )
@@ -688,6 +688,9 @@
   (gr_line (start 50 50) (end 105 50) (layer "Edge.Cuts") (width 0.1) (tstamp e52addc7-20fc-4e04-9f7a-8fdc979ca545))
   (gr_line (start 53.5 84.25) (end 53.5 94) (layer "Edge.Cuts") (width 0.1) (tstamp e9a01d9c-ef49-4415-8b4a-c2308e273ec2))
   (gr_line (start 101.5 94) (end 101.5 84.25) (layer "Edge.Cuts") (width 0.1) (tstamp ee1ea81b-8d7f-4a18-98ab-ad982970c48d))
+  (gr_text "Q-Chord song cartridge 4Mbit\n@partlyhuman 2022-01-15" (at 79 60) (layer "F.SilkS") (tstamp 20d0c1e3-7d69-4785-9477-76273ff3d0c3)
+    (effects (font (size 1 1) (thickness 0.15)))
+  )
 
   (segment (start 65 68.75) (end 65.0475 68.7025) (width 0.3) (layer "F.Cu") (net 1) (tstamp 4abd56b8-8394-4a99-bd81-755a038b19f4))
   (segment (start 65.0475 68.7025) (end 72.201377 68.7025) (width 0.3) (layer "F.Cu") (net 1) (tstamp 7860d7fb-ccee-4bef-9437-ffdcdf40a397))
