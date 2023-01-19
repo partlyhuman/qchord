@@ -5,13 +5,13 @@
       "Application": "Pcbnew",
       "Version": "(6.0.7-1)-1"
     },
-    "CreationDate": "2023-01-16T09:35:13-08:00"
+    "CreationDate": "2023-01-18T18:07:14-08:00"
   },
   "GeneralSpecs": {
     "ProjectId": {
       "Name": "QCard",
       "GUID": "51436172-642e-46b6-9963-61645f706362",
-      "Revision": "rev?"
+      "Revision": "1903842"
     },
     "Size": {
       "X": 55.1,
