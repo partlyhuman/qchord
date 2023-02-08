@@ -4,6 +4,8 @@ Things that work with the Suzuki QChord, primarily a reproduction QCard that can
 
 # qcard-tsop32
 
+![PCB rendering](docs/screenshot-pcb.png)
+
 A rewriteable reproduction QCard PCB using SMD components. The flash module uses a TSOP32 package.
 
 BOM:
@@ -12,6 +14,8 @@ BOM:
 * 1x 0805 100pF SMD capacitor
 
 # qcard-case
+
+![Case rendering](docs/screenshot-case.png)
 
 A 3d printable case for the flash QCard. Prints easily with FDM printers.
 
