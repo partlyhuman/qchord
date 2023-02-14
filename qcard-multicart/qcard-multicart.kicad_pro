@@ -45,7 +45,7 @@
         "silk_text_upright": false,
         "zones": {
           "45_degree_only": false,
-          "min_clearance": 0.25
+          "min_clearance": 0.15
         }
       },
       "diff_pair_dimensions": [
@@ -391,7 +391,10 @@
         "microvia_diameter": 0.6858,
         "microvia_drill": 0.254,
         "name": "L",
-        "nets": [],
+        "nets": [
+          "+3.3V",
+          "+5V"
+        ],
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "schematic_color": "rgba(0, 0, 0, 0.000)",
         "track_width": 0.508,
