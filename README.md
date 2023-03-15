@@ -6,7 +6,7 @@ Things that work with the Suzuki QChord, primarily a reproduction QCard that can
 
 ![PCB rendering](docs/multicart-front.png)
 
-A single cartridge that contains the entire Q-Card library, selectable by dip switches.
+A single cartridge that contains the entire Q-Card library, selectable by dip switches. The flash should be programmed prior to assembly, by concatenating the 4Mbit dumps you can find on archive.org.
 
 BOM:
 
@@ -21,7 +21,7 @@ BOM:
 
 ![PCB rendering](docs/screenshot-pcb.png)
 
-A rewriteable reproduction QCard PCB using SMD components. The flash module uses a TSOP32 package.
+A rewriteable reproduction QCard PCB using SMD components. The flash module uses a TSOP32 package. It can be reprogrammed after assembly with the programmer adapter below, and write-protected with a solder jumper
 
 BOM:
 
