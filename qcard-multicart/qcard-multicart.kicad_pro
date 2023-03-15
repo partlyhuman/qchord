@@ -469,7 +469,7 @@
     "netclass_assignments": null,
     "netclass_patterns": [
       {
-        "netclass": "L",
+        "netclass": "Default",
         "pattern": "+3.3V"
       },
       {
