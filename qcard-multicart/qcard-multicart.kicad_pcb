@@ -266,6 +266,11 @@
       (net 24 "GND") (pinfunction "BYTE#") (pintype "input") (tstamp d3e814b8-5c63-4dc4-a007-f114667f54a5))
     (pad "48" smd rect (at 9.69 -5.75 180) (size 1.54 0.28) (layers "F.Cu" "F.Paste" "F.Mask")
       (net 34 "/A17") (pinfunction "A16") (pintype "input") (tstamp 9bf91736-7b77-45d1-92be-84bedfde3949))
+    (model ":KICAD7_3DMODEL_DIR:Package_SO.3dshapes/TSOP-I-48_16.4x12mm_P0.5mm.step"
+      (offset (xyz 0 0 0))
+      (scale (xyz 1 1 1))
+      (rotate (xyz 0 0 0))
+    )
   )
 
   (footprint "MountingHole:MountingHole_6.4mm_M6" locked (layer "F.Cu")
@@ -387,10 +392,15 @@
       (net 35 "Net-(U1-A20)") (pintype "passive") (tstamp 141c82c4-9382-4487-a91a-93029f8ecea8))
     (pad "8" thru_hole oval (at 7.62 0 270) (size 1.6 1.6) (drill 0.8) (layers "*.Cu" "*.Mask")
       (net 36 "Net-(U1-A21)") (pintype "passive") (tstamp a7402fbf-ffd2-4d3c-bb89-0bde67ff0e58))
-    (model "${KICAD6_3DMODEL_DIR}/Package_DIP.3dshapes/DIP-8_W7.62mm.wrl"
+    (model "${KICAD6_3DMODEL_DIR}/Package_DIP.3dshapes/DIP-8_W7.62mm.wrl" hide
       (offset (xyz 0 0 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
+    )
+    (model "${KIPRJMOD}/Libraries/DIP-1825360-3.stp"
+      (offset (xyz 3.8 -3.8 4))
+      (scale (xyz 1 1 1))
+      (rotate (xyz 0 0 90))
     )
   )
 
@@ -956,7 +966,7 @@
     (stroke (width 0.1) (type solid)) (layer "Edge.Cuts") (tstamp aab51344-49a0-4357-98d5-25502102e855))
   (gr_line (start 121 80.5) (end 121 70.75)
     (stroke (width 0.1) (type solid)) (layer "Edge.Cuts") (tstamp bec8cdb7-d6e9-499d-99ab-6775478eec37))
-  (gr_text "${TITLE}\n${COMPANY} ${ISSUE_DATE}" (at 96.9 57.4) (layer "B.SilkS") (tstamp 21ed707f-2529-445c-95e6-b99f941f258c)
+  (gr_text "${TITLE}\n${COMPANY} ${ISSUE_DATE}" (at 96.9 40.3) (layer "B.SilkS") (tstamp 21ed707f-2529-445c-95e6-b99f941f258c)
     (effects (font (size 1 1) (thickness 0.127)) (justify mirror))
   )
 
