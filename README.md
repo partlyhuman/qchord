@@ -31,7 +31,7 @@ BOM:
 
 ![Case rendering](docs/screenshot-case.png)
 
-A 3d printable case for the flash QCard. Prints easily with FDM printers.
+3d printable cases for the flash QCard and multicart QCard. Prints easily with FDM printers.
 
 BOM:
 
