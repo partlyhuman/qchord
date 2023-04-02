@@ -4,7 +4,7 @@ Things that work with the Suzuki QChord, primarily a reproduction QCard that can
 
 # qcard-multicart
 
-![PCB rendering](docs/multicart-front.png)
+![PCB rendering](docs/multicart-front_proc.jpg)
 
 A single cartridge that contains the entire Q-Card library, selectable by dip switches. The flash should be programmed prior to assembly, by concatenating the 4Mbit dumps you can find on archive.org.
 
@@ -13,9 +13,8 @@ BOM:
 * 1x MX29LV640ETTI parallel 3.3v 64mbit flash
 * 1x MIC5365-3.3YD5 or similar 3.3v linear regulator in TSOT package
 * 1x 76SB04ST or similar 4-row SPST DIP switch, 2.54mm pitch through-hole
-* 2x 1uF 0805 SMD capacitor
-* 1x 100pF 0805 SMD capacitor
-* 4x 10K 0805 SMD resistor
+* 2x 100pF 0805 SMD capacitor
+* 1x 4x1 10K 0612 SMD resistor network
 
 # qcard-tsop32
 
