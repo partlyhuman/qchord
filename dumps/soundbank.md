@@ -154,3 +154,7 @@ Are there markers between samples? Let's look at the end of the font since the s
 90% sure there's no markers but they're indexed elsewhere. Since PCM data has no reserved range it wouldn't really be possible.
 
 So we should be pretty good to replace a PCM section in audio software imperfectly
+
+## PCM data
+
+Import as 16-bit signed PCM 22khz mono
