@@ -23,7 +23,6 @@ Seems like 1. this design isn't very custom, Suzuki had a kind of drop-in soluti
 Also found in the binary is the ASCII `GSSBK080` which is the name of the source sound font perhaps?
 
 
-
 ## SAM9713
 
 [Datasheet here](https://www.dosdays.co.uk/media/dream/SAM9713.PDF).
@@ -31,61 +30,24 @@ Also found in the binary is the ASCII `GSSBK080` which is the name of the source
 One interesting possibility is that it seems to support digital audio.
 
 
-## Possibilities
+## About the manufacturers
 
-Without understanding the format, one thing you could do is swap in the other mentioned wavetable, GMS970800B. No idea if that would be findable or sound significantly different.
-
-
-## Figuring out the GS file format
-
-
-Makers of CleanWave sound banks:
+Dream, Makers of CleanWave sound banks and probably distributor of SAM713:
 
 https://dream.fr/other-documents.html
 
-https://www.dream.fr/pdf/Serie5000/Soundbanks/GMBK5X64.pdf
+https://dosdays.co.uk/topics/wavetable_audio.php
+
+> Terratec files sometimes use a .TTS file extension - these files simply add a header to a .94B file, so could be manipulated to work with the SAM9407.
 
 
-https://openmidiproject.osdn.jp/documentations_en.html
+Software:
 
-The instrument list here matches up with the q-chord manual.
+https://www.fmjsoft.com/awavestudio.html#main
 
-https://coolsoft.altervista.org/en/virtualmidisynth#soundfonts
+http://www.studio4all.de/htmle/welcomeewst.html
 
-## SF2 to 94B
 
-Documenting what happens in [this video](https://www.youtube.com/watch?v=MRmAzK0iHUY):
-
-> I have not found a program to convert .sf2 files to .94b directly
-> 
-> I convert .sf2 files to .dls using Awave Studio
-> 
-> Then, use dlsread.exe to convert .dls to .wav, .94i, .94l
-> 
-> Finally: Guillemot Soundbank Manager, import .94l list to .94k and compile to .94b
-> 
-> Converting .sf2 to .dls in Awave Studio
-> 
-> 1. Delete unused & duplicate waveforms
-> 2. Replace special characters like `(.;~"` from wave names
-> 3. Same for instrument names
-> 4. Save as DLS level 1 spec
-> 5. Sometimes, do not save all regions (message)
-> 
-> How to convert DLS to Sound Bank (.94b)
-> 
-> 1. Run dlsread.exe
-> 2. File > Open, choose DLS file
-> 3. Press "Extract Bank" and you can get .wav, .94i, .94l
-> 4. Run 94ubank(?)
-> 5. Sound Banks > New
-> 6. Choose .94l from #3
-> 7. Press OK, .94k will be made
-> 8. Sound Banks > Open, choose .94k
-> 9. Press COMPILE, .94b will be made
-> 
-> DLS site: http://www.microsoft.com/music/setup.htm
-> 
 
 ## Compared to GSSBK080
 
@@ -149,12 +111,78 @@ Complete swap of upper & lower 512kb
 
 ```
 
+## PCM data
+
+Import as 16-bit signed PCM 22khz mono
+
 Are there markers between samples? Let's look at the end of the font since the samples go long to short and there should be more markers.
 
 90% sure there's no markers but they're indexed elsewhere. Since PCM data has no reserved range it wouldn't really be possible.
 
 So we should be pretty good to replace a PCM section in audio software imperfectly
 
-## PCM data
+First 134,356 bytes (give or take) sounds like garbage when played so could be data?
 
-Import as 16-bit signed PCM 22khz mono
+
+
+## PC Sound cards with SAM9713 chipset
+
+[Guillemot Maxi Sound 64 Home Studio](https://retronn.de/imports/hs64_config_guide.html) comes with some DOS software?
+
+https://retronn.de/imports/hwgal/hw_maxi_sound_64_home_studio.html
+
+[EW64](https://www.vogonswiki.com/index.php/EWS64)
+
+https://retronn.de/imports/hwgal/hw_ews64xl_front.html
+
+
+## DLS to 94B
+
+These appear to be most closely related
+
+[MinimalMIDIPlayer](https://github.com/SamusAranX/MinimalMIDIPlayer)  can use DLS sound fonts as can 
+[Timidity++](https://en.wikipedia.org/wiki/TiMidity%2B%2B)
+
+https://retronn.de/imports/dream_tricks.html
+
+> Is it possible to easily convert soundfonts to 94B format?
+
+> In a way yes. The Maxi Sound 64 Utilities allow to load DLS sound fonts directly. Internally the Utilities convert the DLS sound font on the fly to a 94B file. The program asks if you want to save the generated 94B elsewhere. It loads the 94B and deletes the temporary generated file. In combination with the previously described bug in the Win9x driver the 94B is already deleted when the Utilties ask to save it when the load fails. The only way is to copy the generated 94B manually from the TEMP folder while the error message is displayed. In NT4 however everything works fine.
+There are tools to convert the common SBK, SF2 fonts to DLS first. It is unclear if specific information gets lost on conversion. It appears however that the resulting 94B sound fonts are good.
+To convert SF2 to DLS the Extreme Sample Converter 3.6.0 Demo can be used. Choose as Source Format SF2 and as Destination Format DLS/Bank, press convert.
+
+
+## SF2 to 94B
+
+Documenting what happens in [this video](https://www.youtube.com/watch?v=MRmAzK0iHUY):
+
+> I have not found a program to convert .sf2 files to .94b directly
+> 
+> I convert .sf2 files to .dls using Awave Studio
+> 
+> Then, use dlsread.exe to convert .dls to .wav, .94i, .94l
+> 
+> Finally: Guillemot Soundbank Manager, import .94l list to .94k and compile to .94b
+> 
+> Converting .sf2 to .dls in Awave Studio
+> 
+> 1. Delete unused & duplicate waveforms
+> 2. Replace special characters like `(.;~"` from wave names
+> 3. Same for instrument names
+> 4. Save as DLS level 1 spec
+> 5. Sometimes, do not save all regions (message)
+> 
+> How to convert DLS to Sound Bank (.94b)
+> 
+> 1. Run dlsread.exe
+> 2. File > Open, choose DLS file
+> 3. Press "Extract Bank" and you can get .wav, .94i, .94l
+> 4. Run 94ubank(?)
+> 5. Sound Banks > New
+> 6. Choose .94l from #3
+> 7. Press OK, .94k will be made
+> 8. Sound Banks > Open, choose .94k
+> 9. Press COMPILE, .94b will be made
+> 
+> DLS site: http://www.microsoft.com/music/setup.htm
+> 
