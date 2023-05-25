@@ -91,10 +91,66 @@ Documenting what happens in [this video](https://www.youtube.com/watch?v=MRmAzK0
 
 Found and included GSSBK080.94B. The file is not identical but there are regions that are the same!
 
-Addresses:
+Looking at the audio waveforms it looks like it's ordered like:
 
 ```
-Dump			GSSBK080
-0hD6272		0h65658	
+94B: ABC DEF (audio data starts at 4.5s / 24s)
+BIN: DEF ABC (audio data starts at 11.9s / 24s and loops from end to beginning)
+```
+
+Make them line up:
+
+Appears that the sample data in the .94b starts with ascii "GH SAMP0"
+
+Identical sections start at
 
 ```
+GSSBK080					Dump			
+
+FROM
+0x1f402 (128002)		0x80020 (524320)
+
+FOR
++ 0x7ffde
+
+TO
+0x9F3E0					0xffffe
+
+---
+
+FROM
+0x9f402					0x07246
+
+FOR
++ 0x61510
+
+TO
+0x100912				0x68756
+```
+
+```
+0x1f402-0x9F3E0 of the sound font  === 0x80020-0xffffe of the ROM
+0x9f402-0x100912 of the sound font === 0x07246-0x68756 of the ROM
+
+❯ dd bs=1 skip=128002 count=524254 if=GSSBK080.94B of=A-GSSBK080.94b
+❯ dd bs=1 skip=524320 count=524254 if=QC1-Q616-soundbank.bin of=A-Q616.bin
+
+❯ dd bs=1 skip=29254 count=398608 if=QC1-Q616-soundbank.bin of=B-Q616.bin
+❯ dd bs=1 skip=652290 count=398608 if=GSSBK080.94B of=B-GSSBK080.94b
+
+```
+
+Complete swap of upper & lower 512kb
+
+```
+❯ dd bs=1k skip=512 count=512 if=QC1-Q616-soundbank.bin of=a.bin
+❯ dd bs=1k skip=0 count=512 if=QC1-Q616-soundbank.bin of=b.bin
+❯ cat a.bin b.bin > q616-swap.bin
+
+```
+
+Are there markers between samples? Let's look at the end of the font since the samples go long to short and there should be more markers.
+
+90% sure there's no markers but they're indexed elsewhere. Since PCM data has no reserved range it wouldn't really be possible.
+
+So we should be pretty good to replace a PCM section in audio software imperfectly
