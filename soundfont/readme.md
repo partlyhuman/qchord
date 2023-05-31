@@ -41,12 +41,13 @@ https://dosdays.co.uk/topics/wavetable_audio.php
 > Terratec files sometimes use a .TTS file extension - these files simply add a header to a .94B file, so could be manipulated to work with the SAM9407.
 
 
-Software:
+## Software
 
 https://www.fmjsoft.com/awavestudio.html#main
 
 http://www.studio4all.de/htmle/welcomeewst.html
 
+http://web.archive.org/web/20080314220936/ftp://www.ews64.com/download/vsampler17b1.zip
 
 
 ## Compared to GSSBK080
@@ -135,6 +136,13 @@ https://retronn.de/imports/hwgal/hw_maxi_sound_64_home_studio.html
 
 https://retronn.de/imports/hwgal/hw_ews64xl_front.html
 
+This has a bunch of 98b files
+
+http://www.vogonsdrivers.com/getfile.php?fileid=144
+> DMF format as used by Hoontech is identical to 94B, just rename file.
+TTS format that is sometimes used by Terratec adds a header to the 94B file, but there is a TTS 94B converter available on the Terratec ftp.
+
+
 
 ## DLS to 94B
 
@@ -186,3 +194,10 @@ Documenting what happens in [this video](https://www.youtube.com/watch?v=MRmAzK0
 > 
 > DLS site: http://www.microsoft.com/music/setup.htm
 > 
+
+## 94B to Anything
+
+https://www.vogons.org/viewtopic.php?t=58271
+
+https://www.vogons.org/viewtopic.php?f=62&t=56535
+
