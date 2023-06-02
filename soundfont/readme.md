@@ -25,14 +25,17 @@ Also found in the binary is the ASCII `GSSBK080` which is the name of the source
 
 ## SAM9713
 
-[Datasheet here](https://www.dosdays.co.uk/media/dream/SAM9713.PDF).
+[Programmer reference](sam9407-docs/SAM9407 Programmer Reference.pdf) ⭐
+[Datasheet](sam9407-docs/SAM9407_datasheet.pdf) or [remote](https://www.dosdays.co.uk/media/dream/SAM9713.PDF).
+[Specs](sam9407-docs/SAM9407_specs.pdf)
 
-One interesting possibility is that it seems to support digital audio.
+Note UART MIDI mode, pretty sure this is connected to the QChord midi ports.
 
+One interesting possibility is that it seems to support digital audio, unused by the Q-chord...
 
 ## About the manufacturers
 
-Dream, Makers of CleanWave sound banks and probably distributor of SAM713:
+Dream, Makers of CleanWave sound banks and probably distributor of SAM713. I have found mention of Dream as a subsidiary of Atmel.
 
 https://dream.fr/other-documents.html
 
@@ -40,6 +43,23 @@ https://dosdays.co.uk/topics/wavetable_audio.php
 
 > Terratec files sometimes use a .TTS file extension - these files simply add a header to a .94B file, so could be manipulated to work with the SAM9407.
 
+## PC Sound cards with SAM9713 chipset
+
+The SAM9713 is found in at least two sound cards from the 1990s:
+
+[Guillemot Maxi Sound 64 Home Studio](https://retronn.de/imports/hs64_config_guide.html) comes with some DOS software?
+
+https://retronn.de/imports/hwgal/hw_maxi_sound_64_home_studio.html
+
+[EW64](https://www.vogonswiki.com/index.php/EWS64)
+
+https://retronn.de/imports/hwgal/hw_ews64xl_front.html
+
+This has a bunch of 98b files
+
+http://www.vogonsdrivers.com/getfile.php?fileid=144
+> DMF format as used by Hoontech is identical to 94B, just rename file.
+TTS format that is sometimes used by Terratec adds a header to the 94B file, but there is a TTS 94B converter available on the Terratec ftp.
 
 ## Software
 
@@ -49,6 +69,7 @@ http://www.studio4all.de/htmle/welcomeewst.html
 
 http://web.archive.org/web/20080314220936/ftp://www.ews64.com/download/vsampler17b1.zip
 
+The widest array of software seems to be that bundled with the drivers for the sound cards mentioned above. The TerraTec FTP site has outstanding archives of these, though they need to be run in DOS and/or Windows 98/2000: [EWS](ftp://retronn.de/driver/TerraTec/EWS/) [Guillemot Maxi Sound 64 Home Studio](ftp://retronn.de/driver/Guillemot/MaxiSound64HomeStudio/)
 
 ## Compared to GSSBK080
 
@@ -123,25 +144,6 @@ Are there markers between samples? Let's look at the end of the font since the s
 So we should be pretty good to replace a PCM section in audio software imperfectly
 
 First 134,356 bytes (give or take) sounds like garbage when played so could be data?
-
-
-
-## PC Sound cards with SAM9713 chipset
-
-[Guillemot Maxi Sound 64 Home Studio](https://retronn.de/imports/hs64_config_guide.html) comes with some DOS software?
-
-https://retronn.de/imports/hwgal/hw_maxi_sound_64_home_studio.html
-
-[EW64](https://www.vogonswiki.com/index.php/EWS64)
-
-https://retronn.de/imports/hwgal/hw_ews64xl_front.html
-
-This has a bunch of 98b files
-
-http://www.vogonsdrivers.com/getfile.php?fileid=144
-> DMF format as used by Hoontech is identical to 94B, just rename file.
-TTS format that is sometimes used by Terratec adds a header to the 94B file, but there is a TTS 94B converter available on the Terratec ftp.
-
 
 
 ## DLS to 94B
