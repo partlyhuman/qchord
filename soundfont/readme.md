@@ -25,8 +25,14 @@ Also found in the binary is the ASCII `GSSBK080` which is the name of the source
 
 ## SAM9713
 
-[Programmer reference](sam9407-docs/SAM9407 Programmer Reference.pdf) ⭐
-[Datasheet](sam9407-docs/SAM9407_datasheet.pdf) or [remote](https://www.dosdays.co.uk/media/dream/SAM9713.PDF).
+[Datasheet](https://www.dosdays.co.uk/media/dream/SAM9713.PDF)
+
+Docs for SAM9407, should be similar?
+
+[Programmer reference](sam9407-docs/SAM9407%20Programmer%20Reference.pdf) ⭐
+
+[Datasheet](sam9407-docs/SAM9407_datasheet.pdf)
+
 [Specs](sam9407-docs/SAM9407_specs.pdf)
 
 Note UART MIDI mode, pretty sure this is connected to the QChord midi ports.
@@ -35,7 +41,7 @@ One interesting possibility is that it seems to support digital audio, unused by
 
 ## About the manufacturers
 
-Dream, Makers of CleanWave sound banks and probably distributor of SAM713. I have found mention of Dream as a subsidiary of Atmel.
+Dream, Makers of CleanWave sound banks and probably distributor of SAM9713. I have found mention of Dream as a subsidiary of Atmel.
 
 https://dream.fr/other-documents.html
 
@@ -45,7 +51,7 @@ https://dosdays.co.uk/topics/wavetable_audio.php
 
 ## PC Sound cards with SAM9713 chipset
 
-The SAM9713 is found in at least two sound cards from the 1990s:
+The SAM9713 or its cousin the SAM9407 is found in at least two sound cards from the 1990s:
 
 [Guillemot Maxi Sound 64 Home Studio](https://retronn.de/imports/hs64_config_guide.html) comes with some DOS software?
 
@@ -63,13 +69,16 @@ TTS format that is sometimes used by Terratec adds a header to the 94B file, but
 
 ## Software
 
+The widest array of software seems to be that bundled with the drivers for the sound cards mentioned above. The TerraTec FTP site has outstanding archives of these, though they need to be run in DOS and/or Windows 98/2000: ftp://retronn.de/driver/TerraTec/EWS/ ftp://retronn.de/driver/Guillemot/MaxiSound64HomeStudio/
+
+Others:
+
 https://www.fmjsoft.com/awavestudio.html#main
 
 http://www.studio4all.de/htmle/welcomeewst.html
 
 http://web.archive.org/web/20080314220936/ftp://www.ews64.com/download/vsampler17b1.zip
 
-The widest array of software seems to be that bundled with the drivers for the sound cards mentioned above. The TerraTec FTP site has outstanding archives of these, though they need to be run in DOS and/or Windows 98/2000: [EWS](ftp://retronn.de/driver/TerraTec/EWS/) [Guillemot Maxi Sound 64 Home Studio](ftp://retronn.de/driver/Guillemot/MaxiSound64HomeStudio/)
 
 ## Compared to GSSBK080
 
