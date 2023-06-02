@@ -201,3 +201,6 @@ https://www.vogons.org/viewtopic.php?t=58271
 
 https://www.vogons.org/viewtopic.php?f=62&t=56535
 
+## Replacing with another soundfont
+
+There are some 1MB sound fonts that we could try converting and replacing, many from Sound Blaster. See archive.org or https://airtable.com/shr3JsEBm6VcGk1YS/tblXbqk0Fih9BenPw
