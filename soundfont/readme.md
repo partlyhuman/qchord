@@ -20,7 +20,7 @@ The note is amusing:
 
 Seems like 1. this design isn't very custom, Suzuki had a kind of drop-in solution and 2. they are in violation of Roland's licensing terms since it's apparently designed SPECIFICALLY for cheap shitty toys!
 
-Also found in the binary is the ASCII `GSSBK080` which is the name of the source sound font perhaps?
+Also found in the binary is the ASCII `GSSBK080` which is the name of the source sound font used in the chipset (confirmed).
 
 
 ## SAM9713
