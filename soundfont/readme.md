@@ -3,8 +3,8 @@
 ## Quick Ref
 
 * Controller: SAM9713
-* Sound Bank ROM: GMS960800B
-* Based on soundbank DATA: GSSBK080
+* Soundbank ROM PART: GMS960800B
+* Based on soundbank SET: GSSBK080
 
 ## Findings
 
@@ -16,7 +16,7 @@ This shows up in the datasheet for the Atmel SAM9713, an all-in-one MIDI control
 
 > Available firmware/sample set for turnkey designs
 >
-> — 8 Mbit GMS960800B (**)
+> — 8 Mbit GS GMS960800B (**)
 > 
 > — 8 Mbit CleanWave® GMS970800B
 
@@ -69,11 +69,15 @@ https://retronn.de/imports/hwgal/hw_ews64xl_front.html
 
 This has a bunch of 98b files
 
+Great references:
+
+* https://retronn.de/imports/hwgal/hwgal_empty.html and their FTP
+* http://dosdays.co.uk/topics/wavetable_audio.php
+* https://waveblaster.nl/
+
 http://www.vogonsdrivers.com/getfile.php?fileid=144
 > DMF format as used by Hoontech is identical to 94B, just rename file.
 TTS format that is sometimes used by Terratec adds a header to the 94B file, but there is a TTS 94B converter available on the Terratec ftp.
-
-Two great references are retronn.de and http://dosdays.co.uk/topics/wavetable_audio.php
 
 > Dream released 4 new sound synthesis/processing ICs in March 1998. They were the SAM9707, SAM9703, SAM9713 and SAM9733. The SAM9707 was a marketed as a direct replacement for the SAM9407 on high-end PC sound cards and the SAM9703 was to replace the SAM9503 on high-end karoake systems. The SAM9713 was marketed for use in karaoke systems, and the SAM9733 for low-cost keyboards.
 
@@ -147,14 +151,6 @@ TO
 
 ```
 
-Complete swap of upper & lower 512kb
-
-```
-❯ dd bs=1k skip=512 count=512 if=QC1-Q616-soundbank.bin of=a.bin
-❯ dd bs=1k skip=0 count=512 if=QC1-Q616-soundbank.bin of=b.bin
-❯ cat a.bin b.bin > q616-swap.bin
-
-```
 
 ## PCM data
 
