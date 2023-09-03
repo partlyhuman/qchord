@@ -27,7 +27,7 @@ Also found in the binary is the ASCII `GSSBK080` which is the name of the source
 
 [Datasheet](https://www.dosdays.co.uk/media/dream/SAM9713.PDF)
 
-Docs for SAM9407, should be similar?
+Docs for SAM9407, should be similar? *Note at least pinout differs, SAM9409 is TQFP144, SAM9713 is TQFP80*
 
 [Programmer reference](sam9407-docs/SAM9407%20Programmer%20Reference.pdf) ⭐
 
@@ -215,3 +215,52 @@ https://www.vogons.org/viewtopic.php?f=62&t=56535
 ## Replacing with another soundfont
 
 There are some 1MB sound fonts that we could try converting and replacing, many from Sound Blaster. See archive.org or https://airtable.com/shr3JsEBm6VcGk1YS/tblXbqk0Fih9BenPw
+
+## Verifying data arrangement
+
+The straight copy to MX29F800 doesn't seem to work, so let's verify the pinout isn't unexpected, by tracing SAM94 to ROM socket.
+
+I think we're looking for:
+
+* WD0-15	PCM ROM data
+* WA0-18	External memory address (ROM) *note this is by WORD so multiply addresses by 2, or WA0 is address bit 1*
+* WCS0		PCM ROM Chip Select (active low)
+* WOE		PCM ROM Output Enable (active low)
+* GND
+* VCC		+5V
+
+
+Traced this all out on mainboard referencing pinout of SAM9713:
+
+	NC		| 1 		44 | NC
+	59 WA18	| 2 		43 | NC
+	58 WA17	| 3 		42 | 47 WA8
+	46 WA7	| 4 		41 | 48 WA9
+	45 WA6	| 5 		40 | 49 WA10
+	44 WA5	| 6 		39 | 50 WA11
+	43 WA4	| 7 		38 | 51 WA12
+	42 WA3	| 8 		37 | 52 WA13
+	41 WA2	| 9 		36 | 53 WA14
+	39 WA1	| 10		35 | 54 WA15
+	37 WA0	| 11		34 | 55 WA16
+	29 WCS0	| 12		33 | VCC (BYTE ALWAYS HIGH)
+	GND		| 13		32 | GND
+	31 WOE	| 14		31 | 4 WD15
+	66 WD0	| 15		30 | 73 WD7
+	75 WD8 	| 16		29 | 3 WD14
+	67 WD1	| 17		28 | 72 WD6
+	76 WD9	| 18		27 | 2 WD13
+	68 WD2	| 19		26 | 71 WD5
+	77 WD10	| 20		25 | 79 WD12
+	69 WD3	| 21		24 | 70 WD4
+	78 WD11	| 22		23 | 22/24 VCC 
+
+Confirmed this matches MX23C8100
+This matches MX29F800 as well (the SOP44 i'm using) but 44 is /RESET so this should be pulled high
+
+## Using Flash in its place
+
+Verified copying to a MX29F800 works, with a small tweak:
+
+Ensure pins 43/WE# and 44/RESET# are pulled HIGH. These are NC in the PCB so jumper them to 33/BYTE.
+
