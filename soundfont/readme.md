@@ -1,6 +1,14 @@
 # Soundbank Notes
 
-Binary contains
+## Quick Ref
+
+* Controller: SAM9713
+* Sound Bank ROM: GMS960800B
+* Based on soundbank DATA: GSSBK080
+
+## Findings
+
+Dump of ROM contains the ASCII text
 
 > GMS960800B  V1.0 October 1997 COPYRIGHT DREAM SA 1993-1997
 
@@ -41,13 +49,11 @@ One interesting possibility is that it seems to support digital audio, unused by
 
 ## About the manufacturers
 
-Dream, Makers of CleanWave sound banks and probably distributor of SAM9713. I have found mention of Dream as a subsidiary of Atmel.
+Dream, Makers of CleanWave sound banks and probably distributor of SAM9713. I have found mention of Dream as a subsidiary of Atmel. Roland produced the sound banks.
 
 https://dream.fr/other-documents.html
 
 https://dosdays.co.uk/topics/wavetable_audio.php
-
-> Terratec files sometimes use a .TTS file extension - these files simply add a header to a .94B file, so could be manipulated to work with the SAM9407.
 
 ## PC Sound cards with SAM9713 chipset
 
@@ -66,6 +72,14 @@ This has a bunch of 98b files
 http://www.vogonsdrivers.com/getfile.php?fileid=144
 > DMF format as used by Hoontech is identical to 94B, just rename file.
 TTS format that is sometimes used by Terratec adds a header to the 94B file, but there is a TTS 94B converter available on the Terratec ftp.
+
+Two great references are retronn.de and http://dosdays.co.uk/topics/wavetable_audio.php
+
+> Dream released 4 new sound synthesis/processing ICs in March 1998. They were the SAM9707, SAM9703, SAM9713 and SAM9733. The SAM9707 was a marketed as a direct replacement for the SAM9407 on high-end PC sound cards and the SAM9703 was to replace the SAM9503 on high-end karoake systems. The SAM9713 was marketed for use in karaoke systems, and the SAM9733 for low-cost keyboards.
+
+> The CleanWave 32(TM) is possibly a Roland patchset used without permission. Roland took Dream to court over the use of their samples/patches and won. On 2nd October 1997, Dream and Crystal Semiconductor acknowledged Roland's copyright in its digital sound recordings. Roland then authorised Dream (and its parent company, Atmel) to resell ICs with Roland GS recordings on. CleanWave 32 came with 128 GM instruments plus 195 variations, 9 drumsets and 1 sound effects set.
+
+> Dream also produced a CleanWave 8 (1 MB ROM), CleanWave 16 (2 MB ROM), and CleanWave 64 (8 MB ROM).
 
 ## Software
 
@@ -212,9 +226,6 @@ https://www.vogons.org/viewtopic.php?t=58271
 
 https://www.vogons.org/viewtopic.php?f=62&t=56535
 
-## Replacing with another soundfont
-
-There are some 1MB sound fonts that we could try converting and replacing, many from Sound Blaster. See archive.org or https://airtable.com/shr3JsEBm6VcGk1YS/tblXbqk0Fih9BenPw
 
 ## Verifying data arrangement
 
@@ -264,3 +275,19 @@ Verified copying to a MX29F800 works, with a small tweak:
 
 Ensure pins 43/WE# and 44/RESET# are pulled HIGH. These are NC in the PCB so jumper them to 33/BYTE.
 
+## Experiment: Using a different 1MB GM .94B
+
+From ftp://ftp.retronn.de/driver/TerraTec/EWS/64L/SoundSets has two alternative 1MB sound fonts:
+
+* 1,021,666 94SBK080.94B
+* 1,050,037 GMBK9708.94B
+* 1,023,230 GSSBK080.94B
+
+Let's try replacing the exact same byte ranges but use `GMBK9708.94B` instead:
+
+```
+dd if=font.94b bs=1 skip=128002 count=524254 seek=524320 of=rom.bin conv=notrunc
+dd if=font.94b bs=1 skip=652290 count=398608 seek=29254 of=rom.bin conv=notrunc
+```
+
+Sounds WEIRD. There's got to be something to the nonmatching bytes, or there's more byte ranges to discover that are the same.
