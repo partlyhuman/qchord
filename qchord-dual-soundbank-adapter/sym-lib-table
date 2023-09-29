@@ -1,0 +1,5 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "QChord_Soundbank")(type "KiCad")(uri "${KIPRJMOD}/Libraries/QChord_Soundbank.kicad_sym")(options "")(descr ""))
+  (lib (name "QChord_FLASH")(type "KiCad")(uri "${KIPRJMOD}/Libraries/M29F160FB5AN6F2.kicad_sym")(options "")(descr ""))
+)
