@@ -1,0 +1,27 @@
+$output	image_file.bin
+$target 5716
+$nandflash	spareinclude 	; to generate interlace 'user&spare' for Elnec software entry
+
+;** For MT29F8G16ABACA-WP
+;$nandflashpageusersize	0x800
+;$nandflashpagesparesize 0x70
+;$devicesize	0x40000000
+
+;** For MT29F8G08ABACA - 8Gbits, page are 2k+112 words
+$nandflashpageusersize	0x800
+$nandflashpagesparesize	0x70
+$devicesize	0x20000000	; 8Gbits= 512Mwords
+
+;** For MT29F4G08ABADA-WPD
+;$nandflashpageusersize	0x400
+;$nandflashpagesparesize 0x20
+;$devicesize	0x10000000
+
+$programableamount 95	;max 95%, keep 5% free for NAND Flash Management
+$pattern	0xEEEE	;fill gap with this pattern word
+
+; firmware
+;firmware.bin	0x0000
+
+; soundbank
+sbk.bin 	0x80000
