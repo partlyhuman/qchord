@@ -685,9 +685,9 @@
     (stroke (width 0) (type default))
     (uuid 14f8f5e0-58b1-4696-ae92-32d7322a1c3a)
   )
-  (wire (pts (xy 57.15 119.38) (xy 57.15 120.65))
+  (wire (pts (xy 57.15 107.95) (xy 57.15 111.76))
     (stroke (width 0) (type default))
-    (uuid 340d6ba0-3980-4081-9166-7c8f53ab07a1)
+    (uuid 2d84bca9-e51f-4fcf-91ed-485c95222e9d)
   )
   (wire (pts (xy 50.8 58.42) (xy 62.23 58.42))
     (stroke (width 0) (type default))
@@ -717,13 +717,9 @@
     (stroke (width 0) (type default))
     (uuid adf4296d-c2ed-4be1-a782-497a6a1bd893)
   )
-  (wire (pts (xy 57.15 114.3) (xy 57.15 111.76))
+  (wire (pts (xy 30.48 111.76) (xy 30.48 114.3))
     (stroke (width 0) (type default))
-    (uuid d78546ed-279f-4ea1-98a7-c609f4437a8d)
-  )
-  (wire (pts (xy 30.48 110.49) (xy 30.48 111.76))
-    (stroke (width 0) (type default))
-    (uuid f5c84069-7b55-4562-b460-d39ea5325e27)
+    (uuid ed29eadd-f96f-4c1f-80d0-8ec5aa6f8bcd)
   )
 
   (label "Q1" (at 143.51 26.67 0) (fields_autoplaced)
@@ -1075,24 +1071,24 @@
     (uuid ffad6ba7-a249-4160-8a0d-f2f09ccb8db3)
   )
 
-  (symbol (lib_id "power:GND") (at 57.15 120.65 0) (unit 1)
+  (symbol (lib_id "power:GND") (at 30.48 114.3 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid 1d12533d-707c-4c02-8667-a5e2cbdecfdb)
-    (property "Reference" "#PWR04" (at 57.15 127 0)
+    (property "Reference" "#PWR04" (at 30.48 120.65 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Value" "GND" (at 57.15 125.73 0)
+    (property "Value" "GND" (at 30.48 119.38 0)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Footprint" "" (at 57.15 120.65 0)
+    (property "Footprint" "" (at 30.48 114.3 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Datasheet" "" (at 57.15 120.65 0)
+    (property "Datasheet" "" (at 30.48 114.3 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 82dd06ab-5997-465a-ba42-4c7ea2aab453))
+    (pin "1" (uuid 987d3931-bfe7-4810-9e09-2f1be19bf4ca))
     (instances
-      (project "soundbank"
+      (project "qchord-dual-soundbank-adapter"
         (path "/8abe2c0e-d2a7-4d2b-9391-554ca5a506a1"
           (reference "#PWR04") (unit 1)
         )
@@ -1115,10 +1111,10 @@
     (property "Datasheet" "~" (at 44.45 111.76 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 88f0f16d-e49d-4ed6-9a9a-1d6cef4c73ca))
-    (pin "2" (uuid 416ac90b-2a83-4456-bfc7-475535e1470e))
+    (pin "1" (uuid d3c906af-5df8-43bd-b563-4dd2b9e192de))
+    (pin "2" (uuid ff7fc61d-c3c0-43da-b56a-207bace42922))
     (instances
-      (project "soundbank"
+      (project "qchord-dual-soundbank-adapter"
         (path "/8abe2c0e-d2a7-4d2b-9391-554ca5a506a1"
           (reference "SW1") (unit 1)
         )
@@ -1126,24 +1122,24 @@
     )
   )
 
-  (symbol (lib_id "power:VCC") (at 30.48 110.49 0) (unit 1)
+  (symbol (lib_id "power:VCC") (at 57.15 102.87 0) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid ae09ec4f-b5ad-42aa-ac26-eb990d442c34)
-    (property "Reference" "#PWR03" (at 30.48 114.3 0)
+    (property "Reference" "#PWR03" (at 57.15 106.68 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Value" "VCC" (at 30.48 105.41 0)
+    (property "Value" "VCC" (at 57.15 97.79 0)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Footprint" "" (at 30.48 110.49 0)
+    (property "Footprint" "" (at 57.15 102.87 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Datasheet" "" (at 30.48 110.49 0)
+    (property "Datasheet" "" (at 57.15 102.87 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (pin "1" (uuid c5f491c8-7cea-4a65-869d-cb2752dff354))
     (instances
-      (project "soundbank"
+      (project "qchord-dual-soundbank-adapter"
         (path "/8abe2c0e-d2a7-4d2b-9391-554ca5a506a1"
           (reference "#PWR03") (unit 1)
         )
@@ -1168,7 +1164,7 @@
     )
     (pin "1" (uuid f1f2498e-33af-4811-ac92-d7e0f5383c8e))
     (instances
-      (project "soundbank"
+      (project "qchord-dual-soundbank-adapter"
         (path "/8abe2c0e-d2a7-4d2b-9391-554ca5a506a1"
           (reference "#PWR01") (unit 1)
         )
@@ -1176,25 +1172,25 @@
     )
   )
 
-  (symbol (lib_id "Device:R_Small") (at 57.15 116.84 180) (unit 1)
+  (symbol (lib_id "Device:R_Small") (at 57.15 105.41 180) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid b0cca1db-698f-440a-9c3c-da36aa28af85)
-    (property "Reference" "R1" (at 59.69 115.57 0)
+    (property "Reference" "R1" (at 59.69 104.14 0)
       (effects (font (size 1.27 1.27)) (justify right))
     )
-    (property "Value" "100K" (at 59.69 118.11 0)
+    (property "Value" "100K" (at 59.69 106.68 0)
       (effects (font (size 1.27 1.27)) (justify right))
     )
-    (property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder" (at 57.15 116.84 0)
+    (property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder" (at 57.15 105.41 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Datasheet" "~" (at 57.15 116.84 0)
+    (property "Datasheet" "~" (at 57.15 105.41 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid 403eb148-408c-4218-856a-77a11579ff07))
-    (pin "2" (uuid c7a7346c-3ef1-42d9-b24e-1b65b7750392))
+    (pin "1" (uuid b2a4093c-c9dc-4edf-972c-b904d62d9e46))
+    (pin "2" (uuid 045cbba7-cc84-4dfa-994b-b54dcb1c0d10))
     (instances
-      (project "soundbank"
+      (project "qchord-dual-soundbank-adapter"
         (path "/8abe2c0e-d2a7-4d2b-9391-554ca5a506a1"
           (reference "R1") (unit 1)
         )
@@ -1219,7 +1215,7 @@
     )
     (pin "1" (uuid ba71d88a-4172-4991-8d55-fb4bfe6af85e))
     (instances
-      (project "soundbank"
+      (project "qchord-dual-soundbank-adapter"
         (path "/8abe2c0e-d2a7-4d2b-9391-554ca5a506a1"
           (reference "#PWR02") (unit 1)
         )
@@ -1290,7 +1286,7 @@
     (pin "8" (uuid 1488a88e-65b3-412a-ba8d-65096eec2d59))
     (pin "9" (uuid 30c8dd72-ddb0-49bc-a850-a274b6fbb073))
     (instances
-      (project "soundbank"
+      (project "qchord-dual-soundbank-adapter"
         (path "/8abe2c0e-d2a7-4d2b-9391-554ca5a506a1"
           (reference "U1") (unit 1)
         )
@@ -1428,7 +1424,7 @@
     (pin "8" (uuid 64623a4c-8442-4301-86d7-0b1a3a6eadab))
     (pin "9" (uuid 8e6c0dad-74d7-426c-8de5-c4540a8e97cd))
     (instances
-      (project "soundbank"
+      (project "qchord-dual-soundbank-adapter"
         (path "/8abe2c0e-d2a7-4d2b-9391-554ca5a506a1"
           (reference "U2") (unit 1)
         )
