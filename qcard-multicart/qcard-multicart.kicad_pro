@@ -439,14 +439,14 @@
         "name": "Default",
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "schematic_color": "rgba(0, 0, 0, 0.000)",
-        "track_width": 0.254,
+        "track_width": 0.2,
         "via_diameter": 0.6858,
         "via_drill": 0.3302,
         "wire_width": 6
       },
       {
         "bus_width": 12,
-        "clearance": 0.508,
+        "clearance": 0.5,
         "diff_pair_gap": 0.6858,
         "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.3302,
@@ -456,7 +456,7 @@
         "name": "L",
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "schematic_color": "rgba(0, 0, 0, 0.000)",
-        "track_width": 0.508,
+        "track_width": 0.5,
         "via_diameter": 0.889,
         "via_drill": 0.381,
         "wire_width": 6
