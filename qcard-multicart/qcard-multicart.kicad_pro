@@ -439,14 +439,14 @@
         "name": "Default",
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "schematic_color": "rgba(0, 0, 0, 0.000)",
-        "track_width": 0.254,
+        "track_width": 0.2,
         "via_diameter": 0.6858,
         "via_drill": 0.3302,
         "wire_width": 6
       },
       {
         "bus_width": 12,
-        "clearance": 0.508,
+        "clearance": 0.3,
         "diff_pair_gap": 0.6858,
         "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.3302,
@@ -456,9 +456,26 @@
         "name": "L",
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "schematic_color": "rgba(0, 0, 0, 0.000)",
-        "track_width": 0.508,
+        "track_width": 0.5,
         "via_diameter": 0.889,
         "via_drill": 0.381,
+        "wire_width": 6
+      },
+      {
+        "bus_width": 12,
+        "clearance": 0.15,
+        "diff_pair_gap": 0.6858,
+        "diff_pair_via_gap": 0.25,
+        "diff_pair_width": 0.3302,
+        "line_style": 0,
+        "microvia_diameter": 0.6858,
+        "microvia_drill": 0.254,
+        "name": "S",
+        "pcb_color": "rgba(0, 0, 0, 0.000)",
+        "schematic_color": "rgba(0, 0, 0, 0.000)",
+        "track_width": 0.2,
+        "via_diameter": 0.6858,
+        "via_drill": 0.3302,
         "wire_width": 6
       }
     ],
@@ -467,7 +484,16 @@
     },
     "net_colors": null,
     "netclass_assignments": null,
-    "netclass_patterns": []
+    "netclass_patterns": [
+      {
+        "netclass": "L",
+        "pattern": "\\+.*|GND"
+      },
+      {
+        "netclass": "S",
+        "pattern": ".*"
+      }
+    ]
   },
   "pcbnew": {
     "last_paths": {
@@ -475,7 +501,7 @@
       "idf": "",
       "netlist": "",
       "specctra_dsn": "",
-      "step": "",
+      "step": "qcard-multicart.step",
       "vrml": ""
     },
     "page_layout_descr_file": "default.kicad_wks"
