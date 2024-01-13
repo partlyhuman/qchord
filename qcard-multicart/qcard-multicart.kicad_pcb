@@ -7,8 +7,8 @@
   (paper "USLetter")
   (title_block
     (title "Q-Chord Multicart")
-    (date "2023-12-13")
-    (rev "3")
+    (date "2024-01-13")
+    (rev "4")
     (company "@partlyhuman")
   )
 
@@ -447,7 +447,7 @@
         (effects (font (size 1 1) (thickness 0.15)))
       (tstamp 27788a7a-1d53-4def-9278-ef46bb6129d5)
     )
-    (fp_text value "SW_DIP_x04" (at 3.81 9.95 90) (layer "F.Fab")
+    (fp_text value "774-1954MST" (at 3.81 9.95 90) (layer "F.Fab")
         (effects (font (size 1 1) (thickness 0.15)))
       (tstamp 77d87a52-1e59-4f4a-81f7-687f6afbe5f1)
     )

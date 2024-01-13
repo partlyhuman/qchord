@@ -1847,7 +1847,7 @@
     (property "Reference" "SW1" (at 85.09 105.41 0)
       (effects (font (size 1.27 1.27)))
     )
-    (property "Value" "SW_DIP_x04" (at 85.09 107.95 0)
+    (property "Value" "774-1954MST" (at 85.09 107.95 0)
       (effects (font (size 1.27 1.27)))
     )
     (property "Footprint" "Package_DIP:DIP-8_W7.62mm" (at 85.09 115.57 0)
