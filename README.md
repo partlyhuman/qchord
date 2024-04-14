@@ -4,9 +4,15 @@ Things that work with the Suzuki QChord, primarily a reproduction QCard that can
 
 # qcard-multicart
 
+You can get one as long as stock lasts <a href="https://ko-fi.com/s/ca15ec594a">at my Ko-Fi shop!</a>
+<br>
+<a href="https://ko-fi.com/s/ca15ec594a"><img width="200" height="200" src="https://media0.giphy.com/media/ORCsWmFCkQ4KOZCWE7/200.gif"></a>
+
+
 ![PCB rendering](docs/multicart-front_proc.jpg)
 
 A single cartridge that contains the entire Q-Card library, selectable by dip switches. The flash should be programmed prior to assembly, by concatenating the 4Mbit dumps you can find on archive.org.
+
 
 BOM:
 
