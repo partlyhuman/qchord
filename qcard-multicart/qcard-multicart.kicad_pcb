@@ -812,7 +812,7 @@
 			(pintype "input")
 			(uuid "9bf91736-7b77-45d1-92be-84bedfde3949")
 		)
-		(model ":KICAD7_3DMODEL_DIR:Package_SO.3dshapes/TSOP-I-48_16.4x12mm_P0.5mm.step"
+		(model "${KICAD8_3DMODEL_DIR}/Package_SO.3dshapes/TSOP-I-48_16.4x12mm_P0.5mm.wrl"
 			(offset
 				(xyz 0 0 0)
 			)
