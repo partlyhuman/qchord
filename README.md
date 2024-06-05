@@ -14,24 +14,12 @@ You can get one as long as stock lasts <a href="https://ko-fi.com/s/ca15ec594a">
 A single cartridge that contains the entire Q-Card library, selectable by dip switches. The flash should be programmed prior to assembly, by concatenating the 4Mbit dumps you can find on archive.org.
 
 
-BOM:
-
-* 1x MX29LV640ETTI parallel 3.3v 64mbit flash
-* 1x MIC5365-3.3YD5 or similar 3.3v linear regulator in TSOT package
-* 1x 76SB04ST or similar 4-row SPST DIP switch, 2.54mm pitch through-hole
-* 2x 100pF 0805 SMD capacitor
-* 1x 4x1 10K 0612 SMD resistor network
-
 # qcard-tsop32
 
 ![PCB rendering](docs/screenshot-pcb.png)
 
 A rewriteable reproduction QCard PCB using SMD components. The flash module uses a TSOP32 package. It can be reprogrammed after assembly with the programmer adapter below, and write-protected with a solder jumper
 
-BOM:
-
-* 1x SST39SF040 parallel 5v 4mbit flash
-* 1x 0805 100pF SMD capacitor
 
 # qcard-case
 
