@@ -169,6 +169,13 @@ TO
 
 ```
 
+## CleanWave8
+
+The other ROM is GMS970800, now dumped. Seems to correlate to GMBK9708.94B. `GMBK9708` appears at 0x10180.
+
+That said, I kinda don't hear it???
+
+
 
 ## PCM data
 

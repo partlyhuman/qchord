@@ -1,0 +1,62 @@
+SamVS Change History (from V5.125)
+==================================
+V5.126, dlinkP16 V5.126
+- Fix(Link): Aligning txth segment to offset 0x0400 if it would begin at 0..0x3FF
+- Mod: Enhanced Dependency check before build with files sorted in a more complex file structures.
+- New: Constant _SAMVS_P24_BUILD defined during compilation of P24 code (may be used in shared include files)
+
+V5.127, dlinkP16 V5.127
+- Fix: FASTDATA segment not placed correctly if XDATA is placed in different segment
+- New: TableHelper exports binary data (little endian)
+- Mod: "DQSPI Pairing Mismatch!" now displays mismatching register contents
+- Fix: _cptr32 loads 0 (effectively DP1L) if argument is actually a 16 Bit pointer loaded from stack (warning "Segment information missing, using current segment" emitted)
+- New: _cptr32unsafe, same as _cptr32 but without missing segment warning (silently use DP1H)
+- New: _CODEPAGE(), returns current page (effectively DP1H, similar to assembler CODEPAGE constant)
+- Fix(Trace): Better interpretation of 16 Bit constant pointers using current code segment (before previously known IP was used)
+- Mod(Trace): Enhanced guessing on 16 Bit pointers embedded in 32 Bit argument (%16pu for example). After trying data segment, current code segment is checked.
+
+libBwBlt
+========
+V4.625
+- Mod, SAM5xxx: _BwBlt_Init changed to macro for proper cross segment adressing
+
+libFX48
+=======
+V4.612
+- StInsFx: added _StInsFx_SetFilterType function
+
+libFX5000
+=========
+V4.626
+- VoiceProcessor: corrections for the SetSampleRate function
+V4.627
+- SpringReverb: fix in SpringReverb_Init to correctly use 16bit low address portion
+
+libGM2S
+=======
+V4.631
+- relocatable soundbank with size greater than 0x80:0000 can now be on startaddress multiple of 0x80:0000 (before 0x100:0000)
+- in mode random, the random number generated is now common to all groups (before each group had its own random)
+
+libMP3
+======
+V4.631
+- Mod: VBR Frames placed by LAME as a frame filler no longer skipped
+
+libNFM
+======
+V4.634
+- improved execution time of NFM_Init
+
+libSys
+======
+V4.642
+- New: _Sys_GetTimer2Rate
+V4.643
+- Fix: Return Value of _DSPalloc if no free DSP could be found was 0, changed to -1 as documented
+- Mod: _LoadP24 disables interrupt when running from encrypted firmware during DSP load
+
+libUXChg
+========
+V4.637
+- added EON EN35QX512A and ZETTA SPI Flash devices into UXC2D_GENERIC_QSPI driver list
