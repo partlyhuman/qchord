@@ -6,6 +6,24 @@
 * Soundbank ROM PART: GMS960800B
 * Based on soundbank SET: GSSBK080
 
+## Default instruments
+
+Guitar = 26 ELECTRIC GUITAR(JAZZ)
+Piano = 0 ACOUSTIC GRAND PIANO
+Strings = 48 STRINGS ENSEMBLE 1
+Vibes = 11 VIBRAPHONE
+Organ = 19 CHURCH ORGAN
+Voice = 53 VOICE OOOHS
+Flute = 75 PAN FLUTE
+Harp = 46 ORCHESTRAL HARP
+Synths = 82 LEAD 3(CALLIOPE)
+SFX = 98 Drum kit
+
+(Look for this as an array in the program ROM?)
+
+Program ROM @10A9h
+1A 00 30 0B 13 35 4B 2E 52 62
+
 ## Findings
 
 Dump of ROM contains the ASCII text
@@ -287,3 +305,40 @@ dd if=font.94b bs=1 skip=652290 count=398608 seek=29254 of=rom.bin conv=notrunc
 ```
 
 Sounds WEIRD. There's got to be something to the nonmatching bytes, or there's more byte ranges to discover that are the same.
+
+## Combining firmware and soundbank
+
+The ROM dumps are almost certainly a combination of a FIRMWARE, and a SOUNDBANK.
+
+The program `94dinit` is used to assemble a firmware and a soundbank. (There are multiple copies of `94dinit` and even an `94init2`.)
+
+This means that we need:
+* to understand how these are assembled into a ROM
+* the firmware for the SAM9713
+
+Assumptions: We can safely assume that the firmware is not compatible between these sound card SAM chips and the 9713 in the Q-Chord. But the hope is that we can get the firmware separated out and use the `94dinit` assembler to put it together. The assumption that the ROM is assembled the same way between chipsets, but we don't actually know this.
+
+If the assembly process is simple enough, the hope is we can extract the firmware from the ROM.
+
+Could the open source driver https://sam9407.sourceforge.net/ have some version of the assembler?
+
+Tools and even gerbers for reference design for SAM9407 sound card 
+https://archive.org/download/97-pnp-2-v-50
+https://archive.org/details/manualzilla-id-5727655
+found at
+https://www.vogons.org/viewtopic.php?t=92271
+
+## Roadmap to generate ROM
+
+1. Extract firmware and master assembly of 94b + firmware into ROMs
+2. Use impulse tracker instruments from https://github.com/msx2plus/msx_iti_collection
+3. Assemble in Awave Studio
+4. Export DLS level 1
+5. Use either Ed!son (EMS64) or Maxi Utilities (works without card?) or DREAM Bank Editor (97PNP) to convert to 94B
+6. Assemble with `94dinit`
+7. Missing link - can we assemble to a file or somehow dump the memory (Maxi Utils?) to get the assembled? cause 94dinit goes straight to card RAM
+
+OR,
+3. Extract samples with Awave or other
+4. Go straight into DREAM Bank Editor and create the instruments from scratch
+5. Make a 94B directly
