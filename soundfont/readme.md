@@ -8,21 +8,47 @@
 
 ## Default instruments
 
-Guitar = 26 ELECTRIC GUITAR(JAZZ)
-Piano = 0 ACOUSTIC GRAND PIANO
-Strings = 48 STRINGS ENSEMBLE 1
-Vibes = 11 VIBRAPHONE
-Organ = 19 CHURCH ORGAN
-Voice = 53 VOICE OOOHS
-Flute = 75 PAN FLUTE
-Harp = 46 ORCHESTRAL HARP
-Synths = 82 LEAD 3(CALLIOPE)
-SFX = 98 Drum kit
+| preset   | # | GM instrument name    |
+----------------------------------------
+| Guitar    | 26 | ELECTRIC GUITAR(JAZZ)    |
+| Piano     | 0  | ACOUSTIC GRAND PIANO     |
+| Strings   | 48 | STRINGS ENSEMBLE 1       |
+| Vibes     | 11 | VIBRAPHONE               |
+| Organ     | 19 | CHURCH ORGAN             |
+| Voice     | 53 | VOICE OOOHS              |
+| Flute     | 75 | PAN FLUTE                |
+| Harp      | 46 | ORCHESTRAL HARP          |
+| Synths    | 82 | LEAD 3(CALLIOPE)         |
+| SFX       | 98 | Drum kit                 |
 
-(Look for this as an array in the program ROM?)
+Appears as array in Program ROM @10A9h
 
-Program ROM @10A9h
-1A 00 30 0B 13 35 4B 2E 52 62
+```1A 00 30 0B 13 35 4B 2E 52 62```
+
+## Creating a SAM9713 ROM from a 94B Soundbank
+
+> This is now possible! See [video of the first successful test](https://www.youtube.com/watch?v=fGnvm3H4Y6E) where I created a ROM for SAM9713 injected with the GMBK9708 Dream/Roland sound set.
+
+A ROM for SAM chips combine firmware for the target chip and a specially compiled and relocated 94B sound font. Using the SAM tools we can now make working ROMs for the SAM9713 / Q-Chord.
+
+The 94B sound bank must fit in 1MB, and should be a complete General MIDI set (including instruments 0-99).
+
+1. Obtain the `97PNP2_V50` cd image from https://archive.org/details/97-pnp-2-v-50
+2. Mount the image and install the DREAM Editors from `SNDEDIT/SETUPED.EXE`. This can be done in a Windows 95-2000 VM, but should also still run in Windows 10!
+3. Run the DREAM Bank Editor (`94WBANK.EXE`) and ignore the hardware not found error
+4. Make a working directory like `C:\TEMP`
+5. Use Sound Bank > New > Empty Sound Bank to create a new sound bank and save it to the working directory, like `C:\TEMP\TEMP.94K`
+6. Copy your 94B sound bank and name it after your project e.g. `C:\TEMP\TEMP.94B`. As long as you don't compile the new soundbank, the tool assumes that this is the output of compiling your sound bank and you can perform these steps without having a source `94K`
+7. Use Tran[s]fer > Binary File to start preparing a ROM
+8. Use a Start Address of `0x3400` and a Memory Size of `0x80000` and hit OK. The addresses are in 16-bit words, so this refers to byte `0x6800` in the 1MB ROM. This relocates all the absolute addresses and sets things up to place the sound bank data in the same position as it was in the GMS960800B ROM.
+9. Now, combine the firmware from 0h—6800h of the GMS960800B dump, and the sound bank generated in `C:\TEMP\TEMP.BIN`. You can use `dd`, or even more basic with `cat`:
+
+```
+cp GMS960800B.bin firmware.bin
+truncate firmware.bin --size 26624
+cat firmware.bin TEMP.BIN > newrom.bin
+truncate newrom.bin --size 1048576
+```
 
 ## Findings
 
@@ -67,7 +93,7 @@ One interesting possibility is that it seems to support digital audio, unused by
 
 ## About the manufacturers
 
-Dream, Makers of CleanWave sound banks and probably distributor of SAM9713. I have found mention of Dream as a subsidiary of Atmel. Roland produced the sound banks.
+Dream, Makers of CleanWave sound banks and probably distributor of SAM9713. I think Atmel purchased them at some point. Roland produced the sound banks and Dream stole, then licensed, them.
 
 https://dream.fr/other-documents.html
 
@@ -115,80 +141,22 @@ http://www.studio4all.de/htmle/welcomeewst.html
 
 http://web.archive.org/web/20080314220936/ftp://www.ews64.com/download/vsampler17b1.zip
 
-
-## Compared to GSSBK080
-
-Found and included GSSBK080.94B. The file is not identical but there are regions that are the same!
-
-Looking at the audio waveforms it looks like it's ordered like:
-
-```
-94B: ABC DEF (audio data starts at 4.5s / 24s)
-BIN: DEF ABC (audio data starts at 11.9s / 24s and loops from end to beginning)
-```
-
-Make them line up:
-
-Appears that the sample data in the .94b starts with ascii "GH SAMP0"
-
-Identical sections start at
-
-```
-GSSBK080					Dump			
-
-FROM
-0x1f402 (128002)		0x80020 (524320)
-
-FOR
-+ 0x7ffde
-
-TO
-0x9F3E0					0xffffe
-
----
-
-FROM
-0x9f402					0x07246
-
-FOR
-+ 0x61510
-
-TO
-0x100912				0x68756
-```
-
-```
-0x1f402-0x9F3E0 of the sound font  === 0x80020-0xffffe of the ROM
-0x9f402-0x100912 of the sound font === 0x07246-0x68756 of the ROM
-
-❯ dd bs=1 skip=128002 count=524254 if=GSSBK080.94B of=A-GSSBK080.94b
-❯ dd bs=1 skip=524320 count=524254 if=QC1-Q616-soundbank.bin of=A-Q616.bin
-
-❯ dd bs=1 skip=29254 count=398608 if=QC1-Q616-soundbank.bin of=B-Q616.bin
-❯ dd bs=1 skip=652290 count=398608 if=GSSBK080.94B of=B-GSSBK080.94b
-
-```
+Tools and even gerbers for reference design for SAM9407 sound card 
+https://archive.org/download/97-pnp-2-v-50
+https://archive.org/details/manualzilla-id-5727655
+found at
+https://www.vogons.org/viewtopic.php?t=92271
 
 ## CleanWave8
 
 The other ROM is GMS970800, now dumped. Seems to correlate to GMBK9708.94B. `GMBK9708` appears at 0x10180.
 
-That said, I kinda don't hear it???
+Unfortunately, it is not a drop-in replacement, likely because as we now know, the dump contains firmware+soundbank, and the GMS970800 dumped was for use with SAM9503. The correct part for SAM9713 is probably GMS970800*B*.
+
+In an case, now we can 
 
 
-
-## PCM data
-
-Import as 16-bit signed PCM 22khz mono
-
-Are there markers between samples? Let's look at the end of the font since the samples go long to short and there should be more markers.
-
-90% sure there's no markers but they're indexed elsewhere. Since PCM data has no reserved range it wouldn't really be possible.
-
-So we should be pretty good to replace a PCM section in audio software imperfectly
-
-First 134,356 bytes (give or take) sounds like garbage when played so could be data?
-
+# Conversions
 
 ## DLS to 94B
 
@@ -247,105 +215,21 @@ https://www.vogons.org/viewtopic.php?t=58271
 
 https://www.vogons.org/viewtopic.php?f=62&t=56535
 
-
-## Verifying data arrangement
-
-The straight copy to MX29F800 doesn't seem to work, so let's verify the pinout isn't unexpected, by tracing SAM94 to ROM socket.
-
-I think we're looking for:
-
-* WD0-15	PCM ROM data
-* WA0-18	External memory address (ROM) *note this is by WORD so multiply addresses by 2, or WA0 is address bit 1*
-* WCS0		PCM ROM Chip Select (active low)
-* WOE		PCM ROM Output Enable (active low)
-* GND
-* VCC		+5V
-
-
-Traced this all out on mainboard referencing pinout of SAM9713:
-
-	NC		| 1 		44 | NC
-	59 WA18	| 2 		43 | NC
-	58 WA17	| 3 		42 | 47 WA8
-	46 WA7	| 4 		41 | 48 WA9
-	45 WA6	| 5 		40 | 49 WA10
-	44 WA5	| 6 		39 | 50 WA11
-	43 WA4	| 7 		38 | 51 WA12
-	42 WA3	| 8 		37 | 52 WA13
-	41 WA2	| 9 		36 | 53 WA14
-	39 WA1	| 10		35 | 54 WA15
-	37 WA0	| 11		34 | 55 WA16
-	29 WCS0	| 12		33 | VCC (BYTE ALWAYS HIGH)
-	GND		| 13		32 | GND
-	31 WOE	| 14		31 | 4 WD15
-	66 WD0	| 15		30 | 73 WD7
-	75 WD8 	| 16		29 | 3 WD14
-	67 WD1	| 17		28 | 72 WD6
-	76 WD9	| 18		27 | 2 WD13
-	68 WD2	| 19		26 | 71 WD5
-	77 WD10	| 20		25 | 79 WD12
-	69 WD3	| 21		24 | 70 WD4
-	78 WD11	| 22		23 | 22/24 VCC 
-
-Confirmed this matches MX23C8100
-This matches MX29F800 as well (the SOP44 i'm using) but 44 is /RESET so this should be pulled high
-
 ## Using Flash in its place
 
 Verified copying to a MX29F800 works, with a small tweak:
 
 Ensure pins 43/WE# and 44/RESET# are pulled HIGH. These are NC in the PCB so jumper them to 33/BYTE.
 
-## Experiment: Using a different 1MB GM .94B
-
-From ftp://ftp.retronn.de/driver/TerraTec/EWS/64L/SoundSets has two alternative 1MB sound fonts:
-
-* 1,021,666 94SBK080.94B
-* 1,050,037 GMBK9708.94B
-* 1,023,230 GSSBK080.94B
-
-Let's try replacing the exact same byte ranges but use `GMBK9708.94B` instead:
-
-```
-dd if=font.94b bs=1 skip=128002 count=524254 seek=524320 of=rom.bin conv=notrunc
-dd if=font.94b bs=1 skip=652290 count=398608 seek=29254 of=rom.bin conv=notrunc
-```
-
-Sounds WEIRD. There's got to be something to the nonmatching bytes, or there's more byte ranges to discover that are the same.
-
-## Combining firmware and soundbank
-
-The ROM dumps are almost certainly a combination of a FIRMWARE, and a SOUNDBANK.
-
-The program `94dinit` is used to assemble a firmware and a soundbank. (There are multiple copies of `94dinit` and even an `94init2`.)
-
-This means that we need:
-* to understand how these are assembled into a ROM
-* the firmware for the SAM9713
-
-Assumptions: We can safely assume that the firmware is not compatible between these sound card SAM chips and the 9713 in the Q-Chord. But the hope is that we can get the firmware separated out and use the `94dinit` assembler to put it together. The assumption that the ROM is assembled the same way between chipsets, but we don't actually know this.
-
-If the assembly process is simple enough, the hope is we can extract the firmware from the ROM.
-
-Could the open source driver https://sam9407.sourceforge.net/ have some version of the assembler?
-
-Tools and even gerbers for reference design for SAM9407 sound card 
-https://archive.org/download/97-pnp-2-v-50
-https://archive.org/details/manualzilla-id-5727655
-found at
-https://www.vogons.org/viewtopic.php?t=92271
-
-## Roadmap to generate ROM
+## Roadmap to generate Omnichord ROM
 
 1. Extract firmware and master assembly of 94b + firmware into ROMs
 2. Use impulse tracker instruments from https://github.com/msx2plus/msx_iti_collection
 3. Assemble in Awave Studio
 4. Export DLS level 1
 5. Use either Ed!son (EMS64) or Maxi Utilities (works without card?) or DREAM Bank Editor (97PNP) to convert to 94B
-6. Assemble with `94dinit`
-7. Missing link - can we assemble to a file or somehow dump the memory (Maxi Utils?) to get the assembled? cause 94dinit goes straight to card RAM
 
 OR,
 3. Extract samples with Awave or other
-4. Go straight into DREAM Bank Editor and create the instruments from scratch
+4. Go straight into DREAM Bank Editor & DREAM Instrument editor and create the instruments from scratch
 5. Make a 94B directly
