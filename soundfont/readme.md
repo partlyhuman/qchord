@@ -8,8 +8,8 @@
 
 ## Default instruments
 
-| preset   | # | GM instrument name    |
-----------------------------------------
+| preset    | #  | GM instrument name       |
+| --------- | -  | ------------------------ |
 | Guitar    | 26 | ELECTRIC GUITAR(JAZZ)    |
 | Piano     | 0  | ACOUSTIC GRAND PIANO     |
 | Strings   | 48 | STRINGS ENSEMBLE 1       |
