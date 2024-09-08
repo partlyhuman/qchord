@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using _98bdecomp;
@@ -30,7 +31,6 @@ for (int offset = 0; offset < buffer.Length;)
 
             Span<byte> instrumentTableSpan = chunk.Data[..split1].Trim(marker);
             Span<byte> drumsetTableSpan = chunk.Data[split1..split2].Trim(marker);
-            // Span<byte> drumsetTableSpan = chunk.Data.Slice(split1 + marker.Length, split2 - split1 - marker.Length);
 
             Span<InstrumentTableData> instrumentTable = MemoryMarshal.Cast<byte, InstrumentTableData>(instrumentTableSpan);
             Span<InstrumentTableData> drumsetTable = MemoryMarshal.Cast<byte, InstrumentTableData>(drumsetTableSpan);
@@ -43,19 +43,108 @@ for (int offset = 0; offset < buffer.Length;)
 
         case "PARA":
         {
+            // Easier to parse this as a stream where we can consume variable sizes
+            using Stream chunkStream = new MemoryStream(bytes, offset - chunk.Data.Length, chunk.Data.Length);
+            using BinaryReader reader = new BinaryReader(chunkStream);
+
+            // Just worry about one for now
             
-            Span<byte> data = chunk.Data;
-            ReadOnlySpan<InstrumentSplitDefinition> splits = InstrumentSplitDefinition.TakeN(ref data);
-            foreach (InstrumentSplitDefinition split in splits) Console.WriteLine(split);
+            // 1. grab split definitions until the last one
+            while (true)
+            {
+                var splitDef = reader.ReadStruct<InstrumentSplitDefinition>();
+                Console.WriteLine(splitDef);
+                if (splitDef.IsEnd()) break;
+            }
 
-            // // Dump the instrument splits to disk to compare to 94I, should appear as MINS block
-            // string dumpPath = Path.Combine(Path.GetDirectoryName(inputPath), "temp.MINS.bin");
-            // File.WriteAllBytes(dumpPath, MemoryMarshal.Cast<InstrumentSplitDefinition, byte>(splits).ToArray());
-            // Console.WriteLine($"Dumped to {dumpPath}");
+            Split1 split = reader.ReadStruct<Split1>();
+            Console.WriteLine(split);
+            
+            Console.WriteLine($"{split.CountKeyboardTables()} Kbd pointers:");
+            for (int i = 0; i < split.CountKeyboardTables(); i++)
+            {
+                var ptr = reader.ReadUInt16();
+                Console.WriteLine($"{ptr:x04}");
+            }
+            Console.WriteLine($"{split.CountEnvelopes()} Eg pointers:");
+            for (int i = 0; i < split.CountEnvelopes(); i++)
+            {
+                var ptr = reader.ReadUInt16();
+                Console.WriteLine($"{ptr:x04}");
+            }
+            Console.WriteLine($"{split.CountModulators()} Mod pointers:");
+            for (int i = 0; i < split.CountModulators(); i++)
+            {
+                var ptr = reader.ReadUInt16();
+                Console.WriteLine($"{ptr:x04}");
+            }
+            
+            // Should be at the object count object
+            ObjectCounts oc = reader.ReadStruct<ObjectCounts>();
+            Console.WriteLine(oc);
 
-            var parsedSplitDefs = splits.ToArray().Select(x => x.Parse());
+            // Ma1 objects definition
+            for (int i = 0; i < oc.CountMA1(); i++)
+            {
+                MA1 ma1 = reader.ReadStruct<MA1>();
+                Console.WriteLine(ma1);
+            }
 
-            // TODO associate ordering?
+            // Ma2 objects definition
+            for (int i = 0; i < oc.CountMA2(); i++)
+            {
+                MA2 ma2 = MA2.ReadDynamic(reader);
+                Console.WriteLine(ma2);
+            }
+            
+            // Mb objects definition
+            for (int i = 0; i < oc.CountMB(); i++)
+            {
+                MB mb = reader.ReadStruct<MB>();
+                Console.WriteLine(mb);
+            }
+            
+            // Mx objects definition
+            for (int i = 0; i < oc.CountMX(); i++)
+            {
+                MX mx = reader.ReadStruct<MX>();
+                Console.WriteLine(mx);
+            }
+            
+            // My objects definition
+            for (int i = 0; i < oc.CountMY(); i++)
+            {
+                MY my = MY.ReadDynamic(reader);
+                Console.WriteLine(my);
+            }
+
+            // Modulator definitions
+            for (int i = 0; i < split.CountModulators(); i++)
+            {
+                var modulator = reader.ReadStruct<Modulator>();
+                Console.WriteLine(modulator);
+            }
+            
+            // Enveloppe generator definitions
+            for (int i = 0; i < split.CountEnvelopes(); i++)
+            {
+                var envelope = Envelope.ReadDynamic(reader);
+                Console.WriteLine(envelope);
+            }
+            
+            // how far are we?
+            Span<byte> streamUntilHere = chunk.Data[..(int)chunkStream.Position];
+            // Dump the instrument splits to disk to compare to 94I, should appear as MINS block
+            string dumpPath = Path.Combine(Path.GetDirectoryName(inputPath), "temp.MINS.bin");
+            File.WriteAllBytes(dumpPath, streamUntilHere.ToArray());
+            Console.WriteLine($"Dumped to {dumpPath}");
+            
+            
+            // Keyboard table definitions
+            // Ptrpab table definitions
+            
+            
+            
 
             Debugger.Break();
             break;

@@ -5,6 +5,21 @@ using static System.Text.Encoding;
 
 namespace _98bdecomp;
 
+public static class Utils
+{
+    public static T ReadStruct<T>(this BinaryReader reader) where T : struct
+    {
+        // OK to go on stack because we'll copy by value
+        Span<byte> buffer = stackalloc byte[Marshal.SizeOf<T>()];
+        if (reader.Read(buffer) != buffer.Length)
+        {
+            throw new EndOfStreamException();
+        }
+
+        return MemoryMarshal.Read<T>(buffer);
+    }
+}
+
 public unsafe struct RiffHeader
 {
     private fixed byte id[4];
@@ -66,12 +81,12 @@ public readonly struct InstrumentSplitDefinition
     public readonly UInt16 SplitStopData;
     public readonly UInt16 SoundPointer;
 
-    private byte Note(UInt16 data) => (byte)(data >> 8);
-    private byte Dyn(UInt16 data) => (byte)(data | 0b111111);
+    public byte Note(UInt16 data) => (byte)(data >> 8);
+    public byte Dyn(UInt16 data) => (byte)(data | 0b111111);
 
-    private bool Repeat(UInt16 data) => (data & (1 << 7)) != 0;
-    private bool Mn(UInt16 data) => (data & (1 << 15)) != 0;
-    private bool IsEnd() => Mn(SplitStopData);
+    public bool Repeat(UInt16 data) => (data & (1 << 7)) != 0;
+    public bool Mn(UInt16 data) => (data & (1 << 15)) != 0;
+    public bool IsEnd() => Mn(SplitStopData);
 
     public InstrumentSplitDefinitionParsed Parse() => new(
         StartNote: Note(SplitStartData),
@@ -95,42 +110,49 @@ public readonly struct InstrumentSplitDefinition
             }
         }
 
-        data = data[..(i * Marshal.SizeOf<InstrumentSplitDefinition>())];
+        data = data[(i * Marshal.SizeOf<InstrumentSplitDefinition>())..];
         return all[..i];
     }
 
     public override string ToString() =>
-        $"Inst Split from note {Note(SplitStartData)} / dyn {Dyn(SplitStartData)} -> note {Note(SplitStopData)} / dyn {Dyn(SplitStopData)} @ 0x{SoundPointer:x04} repeat? {Repeat(SplitStartData)}";
+        $"Split {Note(SplitStartData)}/{Dyn(SplitStartData)}...{Note(SplitStopData)}/{Dyn(SplitStopData)} @ 0x{SoundPointer:x04}";
 }
 
-public struct Split
+public struct Split1
 {
     private UInt16 PtrtabPointer;
 
     private UInt16 Status;
 
-    private int CountEnvelopes() => ((Status >> 5) & 0b11) switch
+    public int CountEnvelopes() => ((Status >> 5) & 0b11) switch
     {
         0b11 => 1, 0b10 => 2, 0b01 => 3, 0b00 => 4,
         _ => throw new ArgumentOutOfRangeException("Eg nb"),
     };
 
 
-    private int CountModulators() => ((Status >> 3) & 0b11) switch
+    public int CountModulators() => ((Status >> 3) & 0b11) switch
     {
         0b10 => 0, 0b01 => 1, 0b00 => 2,
         _ => throw new ArgumentOutOfRangeException("Mod nb"),
     };
 
-    private int CountKeyboardTables() => (Status & 0b111) switch
+    public int CountKeyboardTables() => (Status & 0b111) switch
     {
         0b100 => 0, 0b011 => 1, 0b010 => 2, 0b001 => 3, 0b000 => 4,
         _ => throw new ArgumentOutOfRangeException("Kbd nb"),
     };
 
+    public override string ToString()
+    {
+        return $"Ptrtab {PtrtabPointer:x04}\n" +
+               $"Status {Status:b016}\n" +
+               $"{CountKeyboardTables()} Keyboard tables, {CountEnvelopes()} Envelopes, {CountModulators()} Modulators";
+    }
+
     private const int SizeofWord = 2;
 
-    private int GetObjectsStructOffset() =>
+    public int GetObjectsStructOffset() =>
         SizeofWord // Ptrtab
         + SizeofWord // Status
         + CountKeyboardTables() * SizeofWord
@@ -154,47 +176,176 @@ public struct Split
        Keyboard table definitions
        Ptrpab table definitions
      */
+}
 
-    readonly struct ObjectCounts
-    {
-        private readonly UInt16 bitfield;        
-        public static int ToInt3Bit(int b) => (~b & 0b111) + 1;
-        public static int ToInt2Bit(int b) => (~b & 0b11) + 1;
+readonly struct ObjectCounts
+{
+    private readonly UInt16 bitfield;
+    public static int ToInt3Bit(int b) => (~b & 0b111) + 1;
+    public static int ToInt2Bit(int b) => (~b & 0b11) + 1;
 
-        public int CountMA1() => ToInt2Bit(bitfield >> 14);
-        public int CountMA2() => ToInt3Bit(bitfield >> 11);
-        public int CountMB() => ToInt3Bit(bitfield >> 8);
-        public int CountMX() => ToInt3Bit(bitfield >> 5);
-        public int CountMY() => ToInt3Bit(bitfield >> 2);
+    public int CountMA1() => ToInt2Bit(bitfield >> 14);
+    public int CountMA2() => ToInt3Bit(bitfield >> 11);
+    public int CountMB() => ToInt3Bit(bitfield >> 8);
+    public int CountMX() => ToInt3Bit(bitfield >> 5);
+    public int CountMY() => ToInt3Bit(bitfield >> 2);
+
+    public override string ToString()
+    {
+        return $"ObjectCounts {bitfield:b016}\n" +
+               $"{CountMA1()} MA1, {CountMA2()} MA2, {CountMB()} MB, {CountMX()} MX, {CountMY()} MY";
+    }
+}
+
+readonly struct MA1
+{
+    private readonly UInt16 field0;
+    private readonly UInt16 field1;
+    private readonly UInt16 field2;
+
+    public override string ToString()
+    {
+        return $"{nameof(MA1)} {field0:b016} {field1:b016} {field2:b016}";
+    }
+}
+
+// VARIABLE SIZE, NOT STRUCT
+public record MA2(UInt16 Field0, UInt16 Field1, UInt16? Field2 = null)
+{
+    public bool IsFreqType() => (Field1 & 0b1) == 0;
+
+    public static MA2 ReadDynamic(BinaryReader input)
+    {
+        UInt16 field0 = input.ReadUInt16();
+        UInt16 field1 = input.ReadUInt16();
+        if ((field1 & 0b1) == 0)
+        {
+            // Typ = 0 to indicate MA2 frequency object
+            UInt16 field2 = input.ReadUInt16();
+            return new MA2(field0, field1, field2);
+        }
+        else
+        {
+            return new MA2(field0, field1);
+        }
     }
 
-    readonly struct MA1
+    public override string ToString()
     {
-        private readonly UInt16 field0;
-        private readonly UInt16 field1;
-        private readonly UInt16 field2;
+        return $"{nameof(MA2)} {Field0:b016} {Field1:b016} {Field2:b016}";
     }
-    readonly struct MA2
+}
+
+readonly struct MB
+{
+    private readonly UInt16 field0;
+    private readonly UInt16 field1;
+
+    public override string ToString()
     {
-        private readonly UInt16 field0;
-        private readonly UInt16 field1;
-        private readonly UInt16 field2;
-        // MA2 xfer object???
+        return $"{nameof(MB)} {field0:b016} {field1:b016}";
     }
-    readonly struct MB
+}
+
+readonly struct MX
+{
+    private readonly UInt16 field0;
+
+    public override string ToString()
     {
-        private readonly UInt16 field0;
-        private readonly UInt16 field1;
+        return $"{nameof(MX)} {field0:b016}";
     }
-    readonly struct MX
+}
+
+// Dynamic size
+public record MY(UInt16 Field0, UInt16? Field1 = null)
+{
+    private readonly UInt16 xferField0;
+    private readonly UInt16 amplitudeField0;
+
+    private readonly UInt16 amplitudeField1;
+    // TYP field determines whether it's a 
+
+    public static MY ReadDynamic(BinaryReader input)
     {
-        private readonly UInt16 field0;
+        UInt16 field0 = input.ReadUInt16();
+        if ((field0 & 0b1) == 0)
+        {
+            // Typ = 0 to indicate MY Xfer type (done)
+            return new MY(field0);
+        }
+        else
+        {
+            UInt16 field1 = input.ReadUInt16();
+            return new MY(field0, field1);
+        }
     }
-    readonly struct MY
+
+    public override string ToString()
     {
-        private readonly UInt16 xferField0;
-        private readonly UInt16 amplitudeField0;
-        private readonly UInt16 amplitudeField1;
-        // TYP field determines whether it's a 
+        return $"{nameof(MY)} {Field0:b016} {Field1:b016}";
+    }
+}
+
+public readonly struct Modulator
+{
+    private readonly UInt16 field0;
+    private readonly UInt16 field1;
+
+    public override string ToString()
+    {
+        return $"{nameof(Modulator)} {field0:b016} {field1:b016}";
+    }
+}
+
+public record Envelope(string Description)
+{
+    public struct Header
+    {
+        public readonly UInt16 Field0;
+    }
+
+    public struct Segment
+    {
+        public readonly UInt16 Field0;
+        public readonly UInt16 Field1;
+    }
+
+    public static Envelope ReadDynamic(BinaryReader input)
+    {
+        UInt16 header = input.ReadUInt16();
+
+        int i = 0;
+        for (; ; i++)
+        {
+            if (i >= 8)
+            {
+                // throw new InvalidOperationException("More than 8 segments in envelope");
+                break;
+            }
+            
+            UInt16 segment = input.ReadUInt16();
+            int code = (segment >> 13);
+
+            if (code < 0 || code > 4)
+            {
+                throw new IndexOutOfRangeException("Expected code 0-4, found {code}");
+            }
+            
+            if (code == 0)
+            {
+                continue;
+            }
+
+            if (code == 1)
+            {
+                UInt16 jumpBack = input.ReadUInt16();
+            }
+
+            // Only 0 continues
+            break;
+        }
+
+        return new Envelope($"Envelope with {i} segments");
     }
 }
