@@ -4,32 +4,13 @@ using static System.Text.Encoding;
 
 namespace _98bdecomp;
 
-public static class Utils
-{
-    public static unsafe T ReadStruct<T>(Stream stream) where T : unmanaged
-    {
-        Span<byte> buffer = stackalloc byte[sizeof(T)];
-        ReadSpan(stream, ref buffer);
-        return MemoryMarshal.Read<T>(buffer);
-    }
-    public static unsafe T ReadStruct<T>(Span<byte> buffer, int start) where T : unmanaged
-    {
-        Span<byte> span2 = buffer.Slice(start, sizeof(T));
-        return MemoryMarshal.Read<T>(span2);
-    }
-
-    public static void ReadSpan(Stream stream, ref Span<byte> buffer)
-    {
-        Debug.Assert(buffer.Length == stream.Read(buffer), "Unexpected end of stream");
-    }
-}
-
 public unsafe struct RiffHeader
 {
     private fixed byte id[4];
     public UInt32 Length;
-    
+
     public static int Size => sizeof(RiffHeader);
+
     public string Id
     {
         get
@@ -46,26 +27,21 @@ ref struct RiffChunk
 
     public RiffChunk(Span<byte> span, ref int offset)
     {
-        Header = MemoryMarshal.Read<RiffHeader>(span.Slice(offset, RiffHeader.Size));
-        offset += RiffHeader.Size;
-        Data = span.Slice(offset, offset + (int)Header.Length);
-        offset += (int)Header.Length;
-    }
-}
+        int len = RiffHeader.Size;
+        Header = MemoryMarshal.Read<RiffHeader>(span.Slice(offset, len));
+        offset += len;
 
-public struct InstrumentTableData
-{
-    public UInt16 ProgramNumber;
-    public byte VariationNumber;
-    public byte ParamPageNumber;
-    public UInt16 ParamPagePointer;
+        len = (int)Header.Length;
+        Data = span.Slice(offset, len);
+        offset += len;
+    }
 }
 
 public unsafe struct PriorityData
 {
     private fixed byte name[8];
-    public UInt16 Priority;
-    
+    public readonly UInt16 Priority;
+
     public string Name
     {
         get
@@ -73,4 +49,47 @@ public unsafe struct PriorityData
             fixed (byte* namePtr = name) return ASCII.GetString(namePtr, 8);
         }
     }
+}
+
+public readonly struct InstrumentTableData
+{
+    public readonly UInt16 ProgramNumber;
+    public readonly byte VariationNumber;
+    public readonly byte ParamPageNumber;
+    public readonly UInt16 ParamPagePointer;
+}
+
+public readonly struct InstrumentSplit
+{
+    public readonly UInt16 SplitStartData;
+    public readonly UInt16 SplitStopData;
+    public readonly UInt16 SoundPointer;
+
+    public byte Note(UInt16 data) => (byte)(data >> 8);
+    public byte Dyn(UInt16 data) => (byte)(data | 0b111111);
+    
+    public bool Repeat(UInt16 data) => (data & (1 << 7)) != 0;
+    public bool Mn(UInt16 data) => (data & (1 << 15)) != 0;
+
+    public bool IsEnd() => Mn(SplitStopData);
+
+    public static ReadOnlySpan<InstrumentSplit> TakeN(ReadOnlySpan<byte> data)
+    {
+        ReadOnlySpan<InstrumentSplit> all = MemoryMarshal.Cast<byte, InstrumentSplit>(data);
+        int i = 0;
+        
+        for (;; i++)
+        {
+            InstrumentSplit currentInstrumentSplit = all[i];
+            if (currentInstrumentSplit.IsEnd())
+            {
+                break;
+            }
+        }
+
+        return all[..i];
+    } 
+    
+    public override string ToString() => 
+        $"Inst Split from note {Note(SplitStartData)} / dyn {Dyn(SplitStartData)} -> note {Note(SplitStopData)} / dyn {Dyn(SplitStopData)} @ 0x{SoundPointer:x04} repeat? {Repeat(SplitStartData)}";
 }
