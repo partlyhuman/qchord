@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using static QcardToMidi.MidiEvent;
 
 namespace QcardToMidi;
 
@@ -60,59 +61,99 @@ public class QCard
         using BinaryWriter writer = new(stream);
 
         // states
-        int dt = 0;
+        int? dt = null;
+        byte? status = null;
+        MidiEvent? evt = null;
         while (bytes.Length > 0)
         {
             byte b = bytes[0];
 
-            if (bytes[..3] == [0xB0, 0x2C, 0x7F])
+            if (b == 0xfe)
+            {
+                return;
+            }
+
+            if (dt == null)
+            {
+                dt = b;
+                bytes = bytes[1..];
+                continue;
+            }
+
+            if (bytes.Length >= 3 && bytes[..3].SequenceEqual<byte>([0xB0, 0x2C, 0x7F]))
             {
                 bytes = bytes[3..];
                 continue;
             }
 
-            switch (b)
+            if (b == 0xff)
             {
-                case 0xfe:
-                    // Done
-                    bytes = bytes[..0];
-                    break;
-                case 0xff:
-                    dt = bytes[1];
-                    bytes = bytes[2..];
-                    break;
-                case 0xaa:
-                    // do something with the next 2 bytes
-                    bytes = bytes[3..];
-                    break;
-                case >= 0x80 and < 0x90:
-                    // Note off
-                    writer.Write(bytes[..2]);
-                    writer.Write((byte)0);
-                    bytes = bytes[2..];
-                    break;
-                case >= 0x90 and < 0xC0:
-                    writer.Write(bytes[..3]);
-                    bytes = bytes[3..];
-                    break;
-                case >= 0xC0 and < 0xE0:
-                    // one byte argument
-                    writer.Write(bytes[..2]);
-                    bytes = bytes[2..];
-                    break;
-                case >= 0xE0 and < 0xF0:
-                    // Pitch bend
-                    writer.Write(bytes[..3]);
-                    bytes = bytes[3..];
-                    break;
+                dt = null;
+                evt = null;
+                status = null;
+                bytes = bytes[1..];
+                continue;
+            }
 
-                default:
+            MidiEvent byteAsEvent = (MidiEvent)(b >> 4);
+            if (byteAsEvent is not NotEvent)
+            {
+                evt = byteAsEvent;
+                status = b;
+                bytes = bytes[1..];
+            }
+
+            writer.Write(status.Value);
+
+            int argc = evt.Value.ArgumentBytes();
+            writer.Write(bytes[..argc]);
+            bytes = bytes[argc..];
+
+            // Peek, if a note off is followed by note (already consumed) and then:
+            // a new event: write velocity 0
+            // a value: continue and write it as the velocity
+            if (evt is NoteOff)
+            {
+                b = bytes[0];
+                if ((MidiEvent)(b >> 4) is NotEvent)
+                {
+                    writer.Write(b);
                     bytes = bytes[1..];
-                    Console.WriteLine($"Unhandled midi status 0x{b:x02}");
-                    break;
+                }
+                else
+                {
+                    writer.Write((byte)0);
+                }
             }
         }
     }
 
     public override string ToString() => $"QCard Type: {type} Tracks: {trackCount} Tempos: {trackTempos}";
+}
+
+enum MidiEvent : byte
+{
+    NotEvent = 0,
+    NoteOff = 0b1000,
+    NoteOn = 0b1001,
+    KeyPressure = 0b1010,
+    ControlChange = 0b1011,
+    ProgramChange = 0b1100,
+    ChannelPressure = 0b1101,
+    PitchWheel = 0b1110,
+    ChannelMode = 0b1011,
+    SystemExclusive = 0b1111,
+    QChord = 0xA,
+}
+
+static class MidiEventExtensions
+{
+    public static int ArgumentBytes(this MidiEvent evt) => evt switch
+    {
+        NoteOff => 1,
+        ProgramChange => 1,
+        ChannelPressure => 1,
+        SystemExclusive => 1,
+        _ => 2,
+    };
 }

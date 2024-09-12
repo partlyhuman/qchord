@@ -5,7 +5,7 @@ using static System.Text.Encoding;
 
 namespace _98bdecomp;
 
-public static class Utils
+static class Utils
 {
     public static T ReadStruct<T>(this BinaryReader reader) where T : struct
     {
@@ -20,7 +20,7 @@ public static class Utils
     }
 }
 
-public unsafe struct RiffHeader
+unsafe struct RiffHeader
 {
     private fixed byte id[4];
     public UInt32 Length;
@@ -51,7 +51,7 @@ ref struct RiffChunk
     }
 }
 
-public unsafe struct PriorityData
+unsafe struct PriorityData
 {
     private fixed byte name[8];
     public readonly UInt16 Priority;
@@ -65,7 +65,7 @@ public unsafe struct PriorityData
     }
 }
 
-public readonly struct InstrumentTableData
+readonly struct InstrumentTableData
 {
     public readonly UInt16 ProgramNumber;
     public readonly byte VariationNumber;
@@ -73,9 +73,9 @@ public readonly struct InstrumentTableData
     public readonly UInt16 ParamPagePointer;
 }
 
-public record struct InstrumentSplitDefinitionParsed(byte StartNote, byte StartDyn, byte EndNote, byte EndDyn, bool Repeat);
+record struct InstrumentSplitDefinitionParsed(byte StartNote, byte StartDyn, byte EndNote, byte EndDyn, bool Repeat);
 
-public readonly struct InstrumentSplitDefinition
+readonly struct InstrumentSplitDefinition
 {
     public readonly UInt16 SplitStartData;
     public readonly UInt16 SplitStopData;
@@ -118,18 +118,17 @@ public readonly struct InstrumentSplitDefinition
         $"Split {Note(SplitStartData)}/{Dyn(SplitStartData)}...{Note(SplitStopData)}/{Dyn(SplitStopData)} @ 0x{SoundPointer:x04}";
 }
 
-public struct Split1
+readonly struct Split1
 {
-    private UInt16 PtrtabPointer;
+    private readonly UInt16 PtrtabPointer;
 
-    private UInt16 Status;
+    private readonly UInt16 Status;
 
     public int CountEnvelopes() => ((Status >> 5) & 0b11) switch
     {
         0b11 => 1, 0b10 => 2, 0b01 => 3, 0b00 => 4,
         _ => throw new ArgumentOutOfRangeException("Eg nb"),
     };
-
 
     public int CountModulators() => ((Status >> 3) & 0b11) switch
     {
@@ -210,7 +209,7 @@ readonly struct MA1
 }
 
 // VARIABLE SIZE, NOT STRUCT
-public record MA2(UInt16 Field0, UInt16 Field1, UInt16? Field2 = null)
+record MA2(UInt16 Field0, UInt16 Field1, UInt16? Field2 = null)
 {
     public bool IsFreqType() => (Field1 & 0b1) == 0;
 
@@ -258,7 +257,7 @@ readonly struct MX
 }
 
 // Dynamic size
-public record MY(UInt16 Field0, UInt16? Field1 = null)
+record MY(UInt16 Field0, UInt16? Field1 = null)
 {
     private readonly UInt16 xferField0;
     private readonly UInt16 amplitudeField0;
@@ -287,7 +286,7 @@ public record MY(UInt16 Field0, UInt16? Field1 = null)
     }
 }
 
-public readonly struct Modulator
+readonly struct Modulator
 {
     private readonly UInt16 field0;
     private readonly UInt16 field1;
@@ -298,7 +297,7 @@ public readonly struct Modulator
     }
 }
 
-public record Envelope(string Description)
+record Envelope(string Description)
 {
     public struct Header
     {
@@ -318,18 +317,18 @@ public record Envelope(string Description)
         int i = 0;
         for (; ; i++)
         {
-            if (i >= 8)
-            {
-                // throw new InvalidOperationException("More than 8 segments in envelope");
-                break;
-            }
+            // if (i >= 8)
+            // {
+            //     // throw new InvalidOperationException("More than 8 segments in envelope");
+            //     break;
+            // }
             
             UInt16 segment = input.ReadUInt16();
             int code = (segment >> 13);
 
-            if (code < 0 || code > 4)
+            if (code is < 0 or > 4)
             {
-                throw new IndexOutOfRangeException("Expected code 0-4, found {code}");
+                throw new IndexOutOfRangeException($"Expected code 0-4, found {code}");
             }
             
             if (code == 0)
