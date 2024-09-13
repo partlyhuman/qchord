@@ -31,17 +31,17 @@ struct Uint24(int value)
 
 enum MidiEvent : byte
 {
-    NotEvent = 0b0111,
-    NoteOff = 0b1000,
-    NoteOn = 0b1001,
-    KeyPressure = 0b1010,
-    ControlChange = 0b1011,
-    ProgramChange = 0b1100,
-    ChannelPressure = 0b1101,
-    PitchWheel = 0b1110,
-    ChannelMode = 0b1011,
-    SystemExclusive = 0b1111,
-    QChord = 0xA,
+    NotEvent = 0x7,
+    NoteOff = 0x8,
+    NoteOn = 0x9,
+    KeyPressure = 0xA,
+    ControlChange = 0xB,
+    ProgramChange = 0xC,
+    ChannelPressure = 0xD,
+    PitchWheel = 0xE,
+    SystemExclusive = 0xF,
+    // QChord = 0xA,
+    // ChannelMode = 0xB,
 }
 
 static class MidiEventExtensions
