@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static QcardToMidi.MidiEvent;
 
@@ -29,9 +27,36 @@ struct Uint24
     }
 }
 
+enum MidiEvent : byte
+{
+    NotEvent = 0b0111,
+    NoteOff = 0b1000,
+    NoteOn = 0b1001,
+    KeyPressure = 0b1010,
+    ControlChange = 0b1011,
+    ProgramChange = 0b1100,
+    ChannelPressure = 0b1101,
+    PitchWheel = 0b1110,
+    ChannelMode = 0b1011,
+    SystemExclusive = 0b1111,
+    QChord = 0xA,
+}
+
+static class MidiEventExtensions
+{
+    public static int ArgumentBytes(this MidiEvent evt) => evt switch
+    {
+        NoteOff => 1,
+        ProgramChange => 1,
+        ChannelPressure => 1,
+        SystemExclusive => 1,
+        _ => 2,
+    };
+}
+
 public class QCard
 {
-    private byte[] allBytes;
+    private readonly byte[] allBytes;
     private readonly CartType type;
     private readonly int trackCount;
     private readonly int[] trackPointers;
@@ -55,10 +80,13 @@ public class QCard
         ReadOnlySpan<Uint24> trackPointers24 = MemoryMarshal.Cast<byte, Uint24>(trackPointers8);
         trackPointers = trackPointers24.ToArray().Select(u24 => (int)u24).ToArray();
     }
-    
-    public void ConvertToMidiStreamNoTimes(int trackNum, Stream stream, BinaryReader? verifyReader)
+
+    public void ConvertToMidiStreamNoTimes(int trackNum, Stream stream)
     {
-        if (trackNum >= trackCount) throw new ArgumentOutOfRangeException(nameof(trackNum));
+        ArgumentOutOfRangeException.ThrowIfNegative(trackNum);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(trackNum, trackCount);
+        ArgumentNullException.ThrowIfNull(stream);
+
         ReadOnlySpan<byte> bytes = allBytes.AsSpan(trackPointers[trackNum]);
         using BinaryWriter writer = new(stream);
 
@@ -97,10 +125,10 @@ public class QCard
                 continue;
             }
 
-            MidiEvent byteAsEvent = (MidiEvent)(b >> 4);
-            if (byteAsEvent > NotEvent)
+            MidiEvent eventNibble = (MidiEvent)(b >> 4);
+            if (eventNibble > NotEvent)
             {
-                evt = byteAsEvent;
+                evt = eventNibble;
                 status = b;
                 bytes = bytes[1..];
             }
@@ -131,31 +159,4 @@ public class QCard
     }
 
     public override string ToString() => $"QCard Type: {type} Tracks: {trackCount} Tempos: {trackTempos}";
-}
-
-enum MidiEvent : byte
-{
-    NotEvent = 0b0111,
-    NoteOff = 0b1000,
-    NoteOn = 0b1001,
-    KeyPressure = 0b1010,
-    ControlChange = 0b1011,
-    ProgramChange = 0b1100,
-    ChannelPressure = 0b1101,
-    PitchWheel = 0b1110,
-    ChannelMode = 0b1011,
-    SystemExclusive = 0b1111,
-    QChord = 0xA,
-}
-
-static class MidiEventExtensions
-{
-    public static int ArgumentBytes(this MidiEvent evt) => evt switch
-    {
-        NoteOff => 1,
-        ProgramChange => 1,
-        ChannelPressure => 1,
-        SystemExclusive => 1,
-        _ => 2,
-    };
 }
