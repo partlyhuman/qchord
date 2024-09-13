@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static QcardToMidi.MidiEvent;
 
@@ -54,7 +56,32 @@ public class QCard
         trackPointers = trackPointers24.ToArray().Select(u24 => (int)u24).ToArray();
     }
 
-    public void ConvertToMidiStreamNoTimes(int trackNum, Stream stream)
+    private void WriteAndVerify(BinaryWriter writer, ReadOnlySpan<byte> bytes, BinaryReader? reader)
+    {
+        writer.Write(bytes);
+        
+        if (reader != null)
+        {
+            // Debug output
+            Console.Write(Convert.ToHexString(bytes));
+            Span<byte> expected = stackalloc byte[bytes.Length];
+            
+            // Debug.Assert(reader.Read(expected) == expected.Length);
+            // Debug.Assert(bytes.SequenceEqual(actual));
+            if (reader.Read(expected) == expected.Length)
+                if (!bytes.SequenceEqual(expected))
+                {
+                    ref byte spanStart = ref Unsafe.Subtract(ref MemoryMarshal.GetReference(bytes), 16);
+                    ReadOnlySpan<byte> rewound = MemoryMarshal.CreateReadOnlySpan(ref spanStart, 16);
+        
+                    // throw new InvalidDataException($"Expected {Convert.ToHexString(expected)}, wrote {Convert.ToHexString(bytes)}");
+                    Console.Error.WriteLine($"Expected {Convert.ToHexString(expected)}, wrote {Convert.ToHexString(bytes)}");
+                }
+        }
+    }
+
+
+    public void ConvertToMidiStreamNoTimes(int trackNum, Stream stream, BinaryReader? verifyReader)
     {
         if (trackNum >= trackCount) throw new ArgumentOutOfRangeException(nameof(trackNum));
         ReadOnlySpan<byte> bytes = allBytes.AsSpan(trackPointers[trackNum]);
@@ -96,7 +123,7 @@ public class QCard
             }
 
             MidiEvent byteAsEvent = (MidiEvent)(b >> 4);
-            if (byteAsEvent is not NotEvent)
+            if (byteAsEvent > NotEvent)
             {
                 evt = byteAsEvent;
                 status = b;
@@ -115,7 +142,7 @@ public class QCard
             if (evt is NoteOff)
             {
                 b = bytes[0];
-                if ((MidiEvent)(b >> 4) is NotEvent)
+                if ((MidiEvent)(b >> 4) <= NotEvent)
                 {
                     writer.Write(b);
                     bytes = bytes[1..];
@@ -133,7 +160,7 @@ public class QCard
 
 enum MidiEvent : byte
 {
-    NotEvent = 0,
+    NotEvent = 0b0111,
     NoteOff = 0b1000,
     NoteOn = 0b1001,
     KeyPressure = 0b1010,
