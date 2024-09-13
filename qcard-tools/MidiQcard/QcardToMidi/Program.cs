@@ -9,7 +9,7 @@ Debug.Assert(songNumber >= 0);
 QCard qCard = new(File.ReadAllBytes(inputPath));
 Console.WriteLine(qCard);
 
-string outputPath = Path.Combine(Path.GetDirectoryName(inputPath), "out.bin");
+string outputPath = Path.Combine(Path.GetDirectoryName(inputPath)!, "out.bin");
 if (File.Exists(outputPath)) File.Delete(outputPath);
 using FileStream fs = File.Create(outputPath);
 qCard.ConvertToMidiStreamNoTimes(songNumber, fs);

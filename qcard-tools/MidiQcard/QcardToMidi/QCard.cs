@@ -1,3 +1,5 @@
+using System.Buffers.Binary;
+using System.Net;
 using System.Runtime.InteropServices;
 using static QcardToMidi.MidiEvent;
 
@@ -15,11 +17,11 @@ enum TimeSignature : byte
     FourFour = 0xC0,
 }
 
-struct Uint24
+struct Uint24(int value)
 {
-    private byte high;
-    private byte middle;
-    private byte low;
+    private readonly byte high = (byte)((value >> 16) & 0xFF);
+    private readonly byte middle = (byte)((value >> 8) & 0xFF);
+    private readonly byte low = (byte)(value & 0xFF);
 
     public static implicit operator int(Uint24 pointer)
     {
@@ -59,7 +61,7 @@ public class QCard
     private readonly byte[] allBytes;
     private readonly CartType type;
     private readonly int trackCount;
-    private readonly int[] trackPointers;
+    private readonly Uint24[] trackPointers;
     private readonly byte[] trackTempos;
     private readonly TimeSignature[] timeSignatures;
 
@@ -69,16 +71,15 @@ public class QCard
         ReadOnlySpan<byte> span = allBytes.AsSpan();
 
         type = (CartType)span[0x5];
-        int dataPointer = BitConverter.ToUInt16([span[0x21], span[0x20]]);
-        int tempoPointer = BitConverter.ToUInt16([span[0x23], span[0x22]]);
-        int lengthPointer = BitConverter.ToUInt16([span[0x25], span[0x24]]);
+
+        int dataPointer = BinaryPrimitives.ReadUInt16BigEndian(span[0x20..0x22]);
+        int tempoPointer = BinaryPrimitives.ReadUInt16BigEndian(span[0x22..0x24]);
+        int lengthPointer = BinaryPrimitives.ReadUInt16BigEndian(span[0x24..0x26]);
 
         trackCount = tempoPointer - lengthPointer;
         timeSignatures = MemoryMarshal.Cast<byte, TimeSignature>(span[lengthPointer..tempoPointer]).ToArray();
         trackTempos = span[tempoPointer..dataPointer].ToArray();
-        ReadOnlySpan<byte> trackPointers8 = span[dataPointer..(dataPointer + 3 * trackCount)];
-        ReadOnlySpan<Uint24> trackPointers24 = MemoryMarshal.Cast<byte, Uint24>(trackPointers8);
-        trackPointers = trackPointers24.ToArray().Select(u24 => (int)u24).ToArray();
+        trackPointers = MemoryMarshal.Cast<byte, Uint24>(span[dataPointer..])[..trackCount].ToArray();
     }
 
     public void ConvertToMidiStreamNoTimes(int trackNum, Stream stream)
@@ -131,6 +132,11 @@ public class QCard
                 evt = eventNibble;
                 status = b;
                 bytes = bytes[1..];
+            }
+
+            if (evt == null || status == null)
+            {
+                throw new InvalidOperationException("Should have encountered a status byte by now");
             }
 
             writer.Write(status.Value);
