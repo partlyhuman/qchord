@@ -1,34 +1,25 @@
 using System.Buffers.Binary;
 using System.Runtime.InteropServices;
+using System.Text;
 using static QcardToMidi.MidiEvent;
 
 namespace QcardToMidi;
 
 enum CartType : byte
 {
-    Song = 0x55,
-    Rhythm = 0xAA,
+    SongCart = 0x55,
+    RhythmCart = 0xAA,
 }
 
 enum TimeSignature : byte
 {
-    ThreeFour = 0x90,
-    FourFour = 0xC0,
-}
-
-struct Uint24(int value)
-{
-    private readonly byte high = (byte)((value >> 16) & 0xFF);
-    private readonly byte middle = (byte)((value >> 8) & 0xFF);
-    private readonly byte low = (byte)(value & 0xFF);
-
-    public static implicit operator int(Uint24 pointer) =>
-        (pointer.high << 16) | (pointer.middle << 8) | pointer.low;
+    ThreeFourTime = 0x90,
+    FourFourTime = 0xC0,
 }
 
 enum MidiEvent : byte
 {
-    NotEvent = 0x7,
+    NotAnEvent = 0x7, // If first bit is 0, this is value/argument
     NoteOff = 0x8,
     NoteOn = 0x9,
     KeyPressure = 0xA,
@@ -41,7 +32,11 @@ enum MidiEvent : byte
 
 static class MidiEventExtensions
 {
-    public static int ArgumentBytes(this MidiEvent evt) => evt switch
+    public static MidiEvent ToEventNibble(this byte b) => (MidiEvent)(b >> 4);
+
+    public static bool IsEvent(this MidiEvent evt) => evt > NotAnEvent;
+    
+    public static int ArgumentLength(this MidiEvent evt) => evt switch
     {
         NoteOff => 1,
         ProgramChange => 1,
@@ -49,6 +44,16 @@ static class MidiEventExtensions
         SystemExclusive => 1,
         _ => 2,
     };
+}
+
+struct Uint24(int value)
+{
+    private readonly byte high = (byte)((value >> 16) & 0xFF);
+    private readonly byte middle = (byte)((value >> 8) & 0xFF);
+    private readonly byte low = (byte)(value & 0xFF);
+
+    public static implicit operator int(Uint24 pointer) =>
+        (pointer.high << 16) | (pointer.middle << 8) | pointer.low;
 }
 
 public class QCard
@@ -72,8 +77,13 @@ public class QCard
         int lengthPointer = BinaryPrimitives.ReadUInt16BigEndian(span[0x24..0x26]);
 
         trackCount = tempoPointer - lengthPointer;
-        timeSignatures = MemoryMarshal.Cast<byte, TimeSignature>(span[lengthPointer..tempoPointer]).ToArray();
-        trackTempos = span[tempoPointer..dataPointer].ToArray();
+        if (trackCount is < 0 or > 255)
+        {
+            throw new IndexOutOfRangeException($"Invalid track count {trackCount}");
+        }
+
+        timeSignatures = MemoryMarshal.Cast<byte, TimeSignature>(span[lengthPointer..])[..trackCount].ToArray();
+        trackTempos = span[tempoPointer..][..trackCount].ToArray();
         trackPointers = MemoryMarshal.Cast<byte, Uint24>(span[dataPointer..])[..trackCount].ToArray();
     }
 
@@ -107,12 +117,6 @@ public class QCard
                 continue;
             }
 
-            if (bytes.Length >= 3 && bytes[..3].SequenceEqual<byte>([0xB0, 0x2C, 0x7F]))
-            {
-                bytes = bytes[3..];
-                continue;
-            }
-
             if (b == 0xFF)
             {
                 dt = null;
@@ -122,8 +126,8 @@ public class QCard
                 continue;
             }
 
-            MidiEvent eventNibble = (MidiEvent)(b >> 4);
-            if (eventNibble > NotEvent)
+            MidiEvent eventNibble = b.ToEventNibble();
+            if (eventNibble.IsEvent())
             {
                 evt = eventNibble;
                 status = b;
@@ -135,26 +139,29 @@ public class QCard
                 throw new InvalidOperationException("Should have encountered a status byte by now");
             }
 
-            writer.Write(status.Value);
-
-            int argc = evt.Value.ArgumentBytes();
-            writer.Write(bytes[..argc]);
+            // DEBUG Omit certain events from output, only for comparing to captured midi stream. Generally we don't want to silence anything
+            bool muted = status is 0xB0 or 0xAA;
+            
+            // Write status and its argument bytes
+            if (!muted) writer.Write(status.Value);
+            int argc = evt.Value.ArgumentLength();
+            if (!muted) writer.Write(bytes[..argc]);
             bytes = bytes[argc..];
 
-            // Peek, if a note off is followed by note (already consumed) and then:
-            // a new event: write velocity 0
-            // a value: continue and write it as the velocity
+            // Check for implicit velocity after NoteOff
             if (evt is NoteOff)
             {
                 b = bytes[0];
-                if ((MidiEvent)(b >> 4) <= NotEvent)
+                if (b.ToEventNibble().IsEvent())
                 {
-                    writer.Write(b);
-                    bytes = bytes[1..];
+                    // next byte starts a new event: write implied velocity 0
+                    writer.Write((byte)0);
                 }
                 else
                 {
-                    writer.Write((byte)0);
+                    // next byte is a velocity: write and consume it
+                    writer.Write(b);
+                    bytes = bytes[1..];
                 }
             }
         }
@@ -162,9 +169,16 @@ public class QCard
 
     public override string ToString()
     {
-        var ts = "[" + string.Join(", ", timeSignatures.Select(x => x.ToString())) + "]";
-        var te = "[" + string.Join(", ", trackTempos.Select(x => x.ToString("X02"))) + "]";
-        var tp = "[" + string.Join(", ", trackPointers.Select(x => ((int)x).ToString("X06"))) + "]";
-        return $"[QCard type={type} tracks={trackCount} time signatures={ts} tempos={te} track pointers={tp}]";
+        StringBuilder sb = new($"[QCard type={type} tracks={trackCount}\n");
+        for (int i = 0; i < trackCount; i++)
+        {
+            sb.AppendLine($" {i + 1,2}. tempo={trackTempos[i]:D3},{timeSignatures[i]} at 0x{(int)trackPointers[i]:X06}");
+        }
+
+        return sb.Append(']').ToString();
+        // var ts = "[" + string.Join(", ", timeSignatures.Select(x => x.ToString())) + "]";
+        // var te = "[" + string.Join(", ", trackTempos.Select(x => x.ToString())) + "]";
+        // var tp = "[" + string.Join(", ", trackPointers.Select(x => ((int)x).ToString("X06"))) + "]";
+        // return $"[QCard type={type} tracks={trackCount} time signatures={ts} tempos={te} track pointers={tp}]";
     }
 }
