@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using System.Net;
 using System.Runtime.InteropServices;
 using static QcardToMidi.MidiEvent;
 
@@ -23,10 +22,8 @@ struct Uint24(int value)
     private readonly byte middle = (byte)((value >> 8) & 0xFF);
     private readonly byte low = (byte)(value & 0xFF);
 
-    public static implicit operator int(Uint24 pointer)
-    {
-        return (pointer.high << 16) | (pointer.middle << 8) | pointer.low;
-    }
+    public static implicit operator int(Uint24 pointer) =>
+        (pointer.high << 16) | (pointer.middle << 8) | pointer.low;
 }
 
 enum MidiEvent : byte
@@ -40,8 +37,6 @@ enum MidiEvent : byte
     ChannelPressure = 0xD,
     PitchWheel = 0xE,
     SystemExclusive = 0xF,
-    // QChord = 0xA,
-    // ChannelMode = 0xB,
 }
 
 static class MidiEventExtensions
@@ -99,9 +94,10 @@ public class QCard
         {
             byte b = bytes[0];
 
-            if (b == 0xfe)
+            if (b == 0xFE)
             {
-                return;
+                bytes = [];
+                continue;
             }
 
             if (dt == null)
@@ -117,7 +113,7 @@ public class QCard
                 continue;
             }
 
-            if (b == 0xff)
+            if (b == 0xFF)
             {
                 dt = null;
                 evt = null;
@@ -164,5 +160,11 @@ public class QCard
         }
     }
 
-    public override string ToString() => $"QCard Type: {type} Tracks: {trackCount} Tempos: {trackTempos}";
+    public override string ToString()
+    {
+        var ts = "[" + string.Join(", ", timeSignatures.Select(x => x.ToString())) + "]";
+        var te = "[" + string.Join(", ", trackTempos.Select(x => x.ToString("X02"))) + "]";
+        var tp = "[" + string.Join(", ", trackPointers.Select(x => ((int)x).ToString("X06"))) + "]";
+        return $"[QCard type={type} tracks={trackCount} time signatures={ts} tempos={te} track pointers={tp}]";
+    }
 }
