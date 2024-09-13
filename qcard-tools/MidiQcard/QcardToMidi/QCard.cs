@@ -55,32 +55,7 @@ public class QCard
         ReadOnlySpan<Uint24> trackPointers24 = MemoryMarshal.Cast<byte, Uint24>(trackPointers8);
         trackPointers = trackPointers24.ToArray().Select(u24 => (int)u24).ToArray();
     }
-
-    private void WriteAndVerify(BinaryWriter writer, ReadOnlySpan<byte> bytes, BinaryReader? reader)
-    {
-        writer.Write(bytes);
-        
-        if (reader != null)
-        {
-            // Debug output
-            Console.Write(Convert.ToHexString(bytes));
-            Span<byte> expected = stackalloc byte[bytes.Length];
-            
-            // Debug.Assert(reader.Read(expected) == expected.Length);
-            // Debug.Assert(bytes.SequenceEqual(actual));
-            if (reader.Read(expected) == expected.Length)
-                if (!bytes.SequenceEqual(expected))
-                {
-                    ref byte spanStart = ref Unsafe.Subtract(ref MemoryMarshal.GetReference(bytes), 16);
-                    ReadOnlySpan<byte> rewound = MemoryMarshal.CreateReadOnlySpan(ref spanStart, 16);
-        
-                    // throw new InvalidDataException($"Expected {Convert.ToHexString(expected)}, wrote {Convert.ToHexString(bytes)}");
-                    Console.Error.WriteLine($"Expected {Convert.ToHexString(expected)}, wrote {Convert.ToHexString(bytes)}");
-                }
-        }
-    }
-
-
+    
     public void ConvertToMidiStreamNoTimes(int trackNum, Stream stream, BinaryReader? verifyReader)
     {
         if (trackNum >= trackCount) throw new ArgumentOutOfRangeException(nameof(trackNum));
