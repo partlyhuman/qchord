@@ -71,12 +71,12 @@ public class QCard
         ReadOnlySpan<byte> span = allBytes.AsSpan();
 
         type = (CartType)span[0x5];
+        trackCount = span[0x10] + 1;
 
         int dataPointer = BinaryPrimitives.ReadUInt16BigEndian(span[0x20..0x22]);
         int tempoPointer = BinaryPrimitives.ReadUInt16BigEndian(span[0x22..0x24]);
         int lengthPointer = BinaryPrimitives.ReadUInt16BigEndian(span[0x24..0x26]);
 
-        trackCount = tempoPointer - lengthPointer;
         if (trackCount is < 0 or > 255)
         {
             throw new IndexOutOfRangeException($"Invalid track count {trackCount}");
@@ -90,23 +90,23 @@ public class QCard
     public void ConvertToMidiFile(BinaryWriter writer, int trackNum)
     {
         // Write header
-        int modifiedTempo = trackTempos[trackNum] * 3;
+        int modifiedTempo = trackTempos[trackNum];
         Span<byte> headerBytes = stackalloc byte[6];
         BinaryPrimitives.WriteUInt16BigEndian(headerBytes, 0); // format
         BinaryPrimitives.WriteUInt16BigEndian(headerBytes[2..], 1); // num tracks
         BinaryPrimitives.WriteUInt16BigEndian(headerBytes[4..], (ushort)modifiedTempo); // tick div
         WriteAsChunk(writer, headerBytes, "MThd");
-        
+
         // Write midi track into memory instead of to file
         byte[] midiBuffer = new byte[allBytes.Length * 2]; // No way a single track will expand to twice the size of the entire ROM 
         using MemoryStream midiBufferStream = new(midiBuffer);
         using BinaryWriter midiBufferWriter = new(midiBufferStream);
-        ConvertToMidiStream(midiBufferWriter, trackNum, writeTimes: true, muteSpecials: true);
+        ConvertToMidiStream(midiBufferWriter, trackNum, writeTimes: true, muteSpecials: false);
 
         WriteAsChunk(writer, midiBuffer.AsSpan(0, (int)midiBufferStream.Position), "MTrk");
     }
 
-    
+
     private void WriteAsChunk(BinaryWriter writer, ReadOnlySpan<byte> data, string id)
     {
         Span<byte> id4 = stackalloc byte[4];
@@ -114,7 +114,7 @@ public class QCard
 
         Span<byte> len4 = stackalloc byte[4];
         BinaryPrimitives.WriteUInt32BigEndian(len4, (uint)data.Length);
-        
+
         writer.Write(id4);
         writer.Write(len4);
         writer.Write(data);
@@ -132,6 +132,7 @@ public class QCard
         byte? dt = null;
         byte? status = null;
         MidiEvent? evt = null;
+        bool first = false;
         while (bytes.Length > 0)
         {
             byte b = bytes[0];
@@ -175,7 +176,8 @@ public class QCard
             bool muted = muteSpecials && status is 0xB0 or 0xAA;
 
             if (!muted && writeTimes) writer.Write(dt.Value);
-            
+            dt = 0;
+
             // Write status and its argument bytes
             if (!muted) writer.Write(status.Value);
             int argc = evt.Value.ArgumentLength();
