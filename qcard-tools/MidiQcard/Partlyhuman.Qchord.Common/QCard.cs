@@ -69,7 +69,7 @@ public class QCard
             trackStartPointers[i] = new Uint24BigEndian(trackStartPointer);
             ReadOnlySpan<byte> trackData = track.AsSpan();
             trackData.CopyTo(span[trackStartPointer..]);
-            Console.WriteLine($"Writing track {i} length {trackData.Length} at {trackStartPointer:X024}");
+            // Console.WriteLine($"Placing track {i} length {trackData.Length} at {trackStartPointer:X06}");
             trackStartPointer += trackData.Length;
         }
         
