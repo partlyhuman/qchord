@@ -8,4 +8,8 @@
         <RootNamespace>MidiToQcard</RootNamespace>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Partlyhuman.Qchord.Common\Partlyhuman.Qchord.Common.csproj" />
+    </ItemGroup>
+
 </Project>

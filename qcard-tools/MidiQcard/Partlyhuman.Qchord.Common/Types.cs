@@ -6,7 +6,7 @@ enum CartType : byte
     RhythmCart = 0xAA,
 }
 
-enum TimeSignature : byte
+public enum TimeSignature : byte
 {
     ThreeFourTime = 0x90,
     FourFourTime = 0xC0,
