@@ -21,8 +21,9 @@ static class TimeSignatureExtensions
 {
     public static (byte numerator, byte denominator) ToFraction(this TimeSignature ts) => ts switch
     {
-        TimeSignature.ThreeFourTime => (3, 4),
-        TimeSignature.FourFourTime => (4, 4),
+        // denominator is log2(4)
+        TimeSignature.ThreeFourTime => (3, 2),
+        TimeSignature.FourFourTime => (4, 2),
     };
 }
 
@@ -101,12 +102,13 @@ public class QCard
     public void ConvertToMidiFile(BinaryWriter fileWriter, int trackNum)
     {
         // Write header
+        const int tickdiv = 48;
         Span<byte> headerBytes = stackalloc byte[6];
         BinaryPrimitives.WriteUInt16BigEndian(headerBytes, 0); // format
         BinaryPrimitives.WriteUInt16BigEndian(headerBytes[2..], 1); // num tracks
         // int modifiedTempo = 256 / trackTempos[trackNum] + 8;
         // BinaryPrimitives.WriteUInt16BigEndian(headerBytes[4..], (ushort)modifiedTempo); // tick div
-        BinaryPrimitives.WriteUInt16BigEndian(headerBytes[4..], 24 * 2); // 48 PPQN
+        BinaryPrimitives.WriteUInt16BigEndian(headerBytes[4..], tickdiv); // 48 PPQN
         WriteAsChunk(fileWriter, headerBytes, "MThd");
 
         // Write midi track into memory instead of to file
@@ -124,8 +126,7 @@ public class QCard
         // Write time signature meta
         midiWriter.Write((byte)0);
         (byte n, byte d) = timeSignatures[trackNum].ToFraction();
-        byte metronome = (byte)(24 * n); // tick every measure (3 quarter notes in 3/4, 4 quarter notes in 4/4) 
-        Span<byte> timeSignatureEvent = [0xFF, 0x58, 0x04, n, d, metronome, 8];
+        Span<byte> timeSignatureEvent = [0xFF, 0x58, 0x04, n, d, tickdiv, 8];
         midiWriter.Write(timeSignatureEvent);
 
         ConvertToMidiStream(midiWriter, trackNum, writeTimes: true, muteSpecials: false);
