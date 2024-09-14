@@ -2,69 +2,7 @@ using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace QcardToMidi;
-
-enum CartType : byte
-{
-    SongCart = 0x55,
-    RhythmCart = 0xAA,
-}
-
-enum TimeSignature : byte
-{
-    ThreeFourTime = 0x90,
-    FourFourTime = 0xC0,
-}
-
-static class TimeSignatureExtensions
-{
-    public static (byte numerator, byte denominator) ToFraction(this TimeSignature ts) => ts switch
-    {
-        // denominator is log2(4)
-        TimeSignature.ThreeFourTime => (3, 2),
-        TimeSignature.FourFourTime => (4, 2),
-        _ => throw new ArgumentOutOfRangeException(nameof(ts), ts, null),
-    };
-}
-
-enum MidiEvent : byte
-{
-    NotAnEvent = 0x7, // If first bit is 0, this is value/argument
-    NoteOff = 0x8,
-    NoteOn = 0x9,
-    KeyPressure = 0xA,
-    ControlChange = 0xB,
-    ProgramChange = 0xC,
-    ChannelPressure = 0xD,
-    PitchWheel = 0xE,
-    SystemExclusive = 0xF,
-}
-
-static class MidiEventExtensions
-{
-    public static MidiEvent ToEventNibble(this byte b) => (MidiEvent)(b >> 4);
-
-    public static bool IsEvent(this MidiEvent evt) => evt > MidiEvent.NotAnEvent;
-
-    public static int ArgumentLength(this MidiEvent evt) => evt switch
-    {
-        MidiEvent.NoteOff => 1,
-        MidiEvent.ProgramChange => 1,
-        MidiEvent.ChannelPressure => 1,
-        MidiEvent.SystemExclusive => 1,
-        _ => 2,
-    };
-}
-
-struct Uint24BigEndian(int value)
-{
-    private readonly byte high = (byte)((value >> 16) & 0xFF);
-    private readonly byte middle = (byte)((value >> 8) & 0xFF);
-    private readonly byte low = (byte)(value & 0xFF);
-
-    public static implicit operator int(Uint24BigEndian value) =>
-        (value.high << 16) | (value.middle << 8) | value.low;
-}
+namespace Partlyhuman.Qchord.Common;
 
 public class QCard
 {
@@ -98,13 +36,13 @@ public class QCard
         trackPointers = MemoryMarshal.Cast<byte, Uint24BigEndian>(span[dataPointer..])[..trackCount].ToArray();
     }
 
-    public void ConvertToMidiFile(BinaryWriter fileWriter, int trackNum)
+    public void TrackDataToMidiFile(BinaryWriter fileWriter, int trackNum)
     {
         // Write header
         const int tickdiv = 48;
         Span<byte> headerBytes = [0, 0, 0, 1, 0, 0]; // format = 0 (single track midi), tracks = 1
         BinaryPrimitives.WriteUInt16BigEndian(headerBytes[4..], tickdiv); // 48 PPQN
-        WriteAsChunk(fileWriter, headerBytes, "MThd");
+        WriteChunk(fileWriter, headerBytes, "MThd");
 
         // Write midi track into memory instead of to file
         byte[] midiBuffer = new byte[allBytes.Length * 2]; // No way a single track will expand to twice the size of the entire ROM 
@@ -124,16 +62,16 @@ public class QCard
         Span<byte> timeSignatureEvent = [0xFF, 0x58, 0x04, n, d, tickdiv, 8];
         midiWriter.Write(timeSignatureEvent);
 
-        ConvertToMidiStream(midiWriter, trackNum, writeTimes: true, suppressSpecials: false);
+        TrackDataToMidiStream(midiWriter, trackNum, writeTimes: true, suppressSpecials: false);
 
         // Write end of track meta
         midiWriter.Write((byte)0);
         midiWriter.Write([0xFF, 0x2F, 0x00]);
 
-        WriteAsChunk(fileWriter, midiBuffer.AsSpan(0, (int)midiStream.Position), "MTrk");
+        WriteChunk(fileWriter, midiBuffer.AsSpan(0, (int)midiStream.Position), "MTrk");
     }
 
-    private void WriteAsChunk(BinaryWriter writer, ReadOnlySpan<byte> data, string id)
+    private void WriteChunk(BinaryWriter writer, ReadOnlySpan<byte> data, string id)
     {
         Span<byte> id4 = stackalloc byte[4];
         Encoding.ASCII.GetBytes(id.AsSpan(0, Math.Min(id.Length, id4.Length)), id4);
@@ -146,7 +84,7 @@ public class QCard
         writer.Write(data);
     }
 
-    public void ConvertToMidiStream(BinaryWriter writer, int trackNum, bool writeTimes = true, bool suppressSpecials = false)
+    public void TrackDataToMidiStream(BinaryWriter writer, int trackNum, bool writeTimes = true, bool suppressSpecials = false)
     {
         ArgumentNullException.ThrowIfNull(writer);
         ArgumentOutOfRangeException.ThrowIfNegative(trackNum);

@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using QcardToMidi;
+using Partlyhuman.Qchord.Common;
 
 if (args.Length < 1)
 {
@@ -28,11 +28,11 @@ if (args.Length >= 3)
     {
         case "mid":
         case "midi":
-            qCard.ConvertToMidiFile(writer, trackNum);
+            qCard.TrackDataToMidiFile(writer, trackNum);
             Console.WriteLine($"Exported MIDI to {outputPath}");
             break;
         case "bin":
-            qCard.ConvertToMidiStream(writer, trackNum, writeTimes: false, suppressSpecials: true);
+            qCard.TrackDataToMidiStream(writer, trackNum, writeTimes: false, suppressSpecials: true);
             Console.WriteLine($"Exported raw MIDI event data to {outputPath}");
             break;
         default:
@@ -51,7 +51,7 @@ if (args.Length >= 1)
         string outputPath = Path.Combine(dir, $"{basename}_track{i+1:d2}.mid");
         using FileStream fileStream = File.Create(outputPath);
         using BinaryWriter writer = new(fileStream);
-        qCard.ConvertToMidiFile(writer, i);
+        qCard.TrackDataToMidiFile(writer, i);
         Console.WriteLine($"Exported {Path.GetFileName(outputPath)}");
     }
 }

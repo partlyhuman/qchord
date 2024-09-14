@@ -7,6 +7,11 @@
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <IsPackable>false</IsPackable>
+        <RootNamespace>QcardToMidi</RootNamespace>
     </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Partlyhuman.Qchord.Common\Partlyhuman.Qchord.Common.csproj" />
+    </ItemGroup>
 
 </Project>
