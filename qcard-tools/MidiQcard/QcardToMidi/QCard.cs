@@ -89,11 +89,11 @@ public class QCard
 
     public void ConvertToMidiFile(BinaryWriter writer, int trackNum)
     {
-        // Write header
-        int modifiedTempo = (int)(trackTempos[trackNum] * 2.4);
+        // Write header        
         Span<byte> headerBytes = stackalloc byte[6];
         BinaryPrimitives.WriteUInt16BigEndian(headerBytes, 0); // format
         BinaryPrimitives.WriteUInt16BigEndian(headerBytes[2..], 1); // num tracks
+        int modifiedTempo = 256 / trackTempos[trackNum] + 8;
         BinaryPrimitives.WriteUInt16BigEndian(headerBytes[4..], (ushort)modifiedTempo); // tick div
         WriteAsChunk(writer, headerBytes, "MThd");
 
@@ -139,6 +139,8 @@ public class QCard
             if (b == 0xFE)
             {
                 bytes = [];
+                // Write the end of track meta event
+                if (writeTimes) writer.Write([0x00, 0xFF, 0x2F, 0x00]);
                 continue;
             }
 
