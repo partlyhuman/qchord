@@ -65,6 +65,8 @@ public class QCard
     private readonly byte[] trackTempos;
     private readonly TimeSignature[] timeSignatures;
 
+    public int TrackCount => trackCount;
+
     public QCard(byte[] allBytes)
     {
         this.allBytes = allBytes;
