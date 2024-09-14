@@ -32,7 +32,7 @@ if (args.Length >= 3)
             Console.WriteLine($"Exported MIDI to {outputPath}");
             break;
         case "bin":
-            qCard.ConvertToMidiStream(writer, trackNum, writeTimes: false, muteSpecials: true);
+            qCard.ConvertToMidiStream(writer, trackNum, writeTimes: false, suppressSpecials: true);
             Console.WriteLine($"Exported raw MIDI event data to {outputPath}");
             break;
         default:

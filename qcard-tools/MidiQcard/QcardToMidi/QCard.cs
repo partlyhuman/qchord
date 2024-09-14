@@ -1,7 +1,6 @@
 using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 using System.Text;
-using static QcardToMidi.MidiEvent;
 
 namespace QcardToMidi;
 
@@ -24,6 +23,7 @@ static class TimeSignatureExtensions
         // denominator is log2(4)
         TimeSignature.ThreeFourTime => (3, 2),
         TimeSignature.FourFourTime => (4, 2),
+        _ => throw new ArgumentOutOfRangeException(nameof(ts), ts, null),
     };
 }
 
@@ -44,14 +44,14 @@ static class MidiEventExtensions
 {
     public static MidiEvent ToEventNibble(this byte b) => (MidiEvent)(b >> 4);
 
-    public static bool IsEvent(this MidiEvent evt) => evt > NotAnEvent;
+    public static bool IsEvent(this MidiEvent evt) => evt > MidiEvent.NotAnEvent;
 
     public static int ArgumentLength(this MidiEvent evt) => evt switch
     {
-        NoteOff => 1,
-        ProgramChange => 1,
-        ChannelPressure => 1,
-        SystemExclusive => 1,
+        MidiEvent.NoteOff => 1,
+        MidiEvent.ProgramChange => 1,
+        MidiEvent.ChannelPressure => 1,
+        MidiEvent.SystemExclusive => 1,
         _ => 2,
     };
 }
@@ -84,15 +84,14 @@ public class QCard
 
         type = (CartType)span[0x5];
         trackCount = span[0x10] + 1;
-
-        int dataPointer = BinaryPrimitives.ReadUInt16BigEndian(span[0x20..0x22]);
-        int tempoPointer = BinaryPrimitives.ReadUInt16BigEndian(span[0x22..0x24]);
-        int lengthPointer = BinaryPrimitives.ReadUInt16BigEndian(span[0x24..0x26]);
-
         if (trackCount is < 0 or > 255)
         {
             throw new IndexOutOfRangeException($"Invalid track count {trackCount}");
         }
+
+        int dataPointer = BinaryPrimitives.ReadUInt16BigEndian(span[0x20..0x22]);
+        int tempoPointer = BinaryPrimitives.ReadUInt16BigEndian(span[0x22..0x24]);
+        int lengthPointer = BinaryPrimitives.ReadUInt16BigEndian(span[0x24..0x26]);
 
         timeSignatures = MemoryMarshal.Cast<byte, TimeSignature>(span[lengthPointer..])[..trackCount].ToArray();
         trackTempos = span[tempoPointer..][..trackCount].ToArray();
@@ -103,11 +102,7 @@ public class QCard
     {
         // Write header
         const int tickdiv = 48;
-        Span<byte> headerBytes = stackalloc byte[6];
-        BinaryPrimitives.WriteUInt16BigEndian(headerBytes, 0); // format
-        BinaryPrimitives.WriteUInt16BigEndian(headerBytes[2..], 1); // num tracks
-        // int modifiedTempo = 256 / trackTempos[trackNum] + 8;
-        // BinaryPrimitives.WriteUInt16BigEndian(headerBytes[4..], (ushort)modifiedTempo); // tick div
+        Span<byte> headerBytes = [0, 0, 0, 1, 0, 0]; // format = 0 (single track midi), tracks = 1
         BinaryPrimitives.WriteUInt16BigEndian(headerBytes[4..], tickdiv); // 48 PPQN
         WriteAsChunk(fileWriter, headerBytes, "MThd");
 
@@ -122,22 +117,22 @@ public class QCard
         int microsPerQuarterNote = 20_000 * (trackTempos[trackNum] + 10);
         MemoryMarshal.Write(tempoEvent[3..], new Uint24BigEndian(microsPerQuarterNote));
         midiWriter.Write(tempoEvent);
-        
+
         // Write time signature meta
         midiWriter.Write((byte)0);
         (byte n, byte d) = timeSignatures[trackNum].ToFraction();
         Span<byte> timeSignatureEvent = [0xFF, 0x58, 0x04, n, d, tickdiv, 8];
         midiWriter.Write(timeSignatureEvent);
 
-        ConvertToMidiStream(midiWriter, trackNum, writeTimes: true, muteSpecials: false);
-        
+        ConvertToMidiStream(midiWriter, trackNum, writeTimes: true, suppressSpecials: false);
+
         // Write end of track meta
         midiWriter.Write((byte)0);
         midiWriter.Write([0xFF, 0x2F, 0x00]);
 
         WriteAsChunk(fileWriter, midiBuffer.AsSpan(0, (int)midiStream.Position), "MTrk");
     }
-    
+
     private void WriteAsChunk(BinaryWriter writer, ReadOnlySpan<byte> data, string id)
     {
         Span<byte> id4 = stackalloc byte[4];
@@ -151,7 +146,7 @@ public class QCard
         writer.Write(data);
     }
 
-    public void ConvertToMidiStream(BinaryWriter writer, int trackNum, bool writeTimes = true, bool muteSpecials = false)
+    public void ConvertToMidiStream(BinaryWriter writer, int trackNum, bool writeTimes = true, bool suppressSpecials = false)
     {
         ArgumentNullException.ThrowIfNull(writer);
         ArgumentOutOfRangeException.ThrowIfNegative(trackNum);
@@ -202,20 +197,21 @@ public class QCard
                 throw new InvalidOperationException("Should have encountered a status byte by now");
             }
 
-            // DEBUG Omit certain events from output, only for comparing to captured midi stream. Generally we don't want to silence anything
-            bool muted = muteSpecials && status is 0xB0 or 0xAA;
+            // If desired, omit certain events from output - many instances of B02C7F and AAXXXX
+            bool suppress = suppressSpecials && status is 0xB0 or 0xAA;
 
-            if (!muted && writeTimes) writer.Write(dt.Value);
+            // Write first timestamp and then for this run all other events happen at same time
+            if (!suppress && writeTimes) writer.Write(dt.Value);
             dt = 0;
 
             // Write status and its argument bytes
-            if (!muted) writer.Write(status.Value);
+            if (!suppress) writer.Write(status.Value);
             int argc = evt.Value.ArgumentLength();
-            if (!muted) writer.Write(bytes[..argc]);
+            if (!suppress) writer.Write(bytes[..argc]);
             bytes = bytes[argc..];
 
             // Check for implicit velocity after NoteOff
-            if (evt is NoteOff)
+            if (evt is MidiEvent.NoteOff)
             {
                 b = bytes[0];
                 if (b.ToEventNibble().IsEvent())
