@@ -17,6 +17,15 @@ enum TimeSignature : byte
     FourFourTime = 0xC0,
 }
 
+static class TimeSignatureExtensions
+{
+    public static (byte numerator, byte denominator) ToFraction(this TimeSignature ts) => ts switch
+    {
+        TimeSignature.ThreeFourTime => (3, 4),
+        TimeSignature.FourFourTime => (4, 4),
+    };
+}
+
 enum MidiEvent : byte
 {
     NotAnEvent = 0x7, // If first bit is 0, this is value/argument
@@ -89,7 +98,7 @@ public class QCard
         trackPointers = MemoryMarshal.Cast<byte, Uint24BigEndian>(span[dataPointer..])[..trackCount].ToArray();
     }
 
-    public void ConvertToMidiFile(BinaryWriter writer, int trackNum)
+    public void ConvertToMidiFile(BinaryWriter fileWriter, int trackNum)
     {
         // Write header
         Span<byte> headerBytes = stackalloc byte[6];
@@ -98,29 +107,36 @@ public class QCard
         // int modifiedTempo = 256 / trackTempos[trackNum] + 8;
         // BinaryPrimitives.WriteUInt16BigEndian(headerBytes[4..], (ushort)modifiedTempo); // tick div
         BinaryPrimitives.WriteUInt16BigEndian(headerBytes[4..], 24 * 2); // 48 PPQN
-        WriteAsChunk(writer, headerBytes, "MThd");
+        WriteAsChunk(fileWriter, headerBytes, "MThd");
 
         // Write midi track into memory instead of to file
         byte[] midiBuffer = new byte[allBytes.Length * 2]; // No way a single track will expand to twice the size of the entire ROM 
         using MemoryStream midiStream = new(midiBuffer);
         using BinaryWriter midiWriter = new(midiStream);
 
-        // Write tempo meta at 0 time
+        // Write tempo meta
         midiWriter.Write((byte)0);
         Span<byte> tempoEvent = [0xff, 0x51, 0x03, 0, 0, 0];
         int microsPerQuarterNote = 20_000 * (trackTempos[trackNum] + 10);
         MemoryMarshal.Write(tempoEvent[3..], new Uint24BigEndian(microsPerQuarterNote));
         midiWriter.Write(tempoEvent);
+        
+        // Write time signature meta
+        midiWriter.Write((byte)0);
+        (byte n, byte d) = timeSignatures[trackNum].ToFraction();
+        byte metronome = (byte)(24 * n); // tick every measure (3 quarter notes in 3/4, 4 quarter notes in 4/4) 
+        Span<byte> timeSignatureEvent = [0xFF, 0x58, 0x04, n, d, metronome, 8];
+        midiWriter.Write(timeSignatureEvent);
 
         ConvertToMidiStream(midiWriter, trackNum, writeTimes: true, muteSpecials: false);
-        // Write the end of track meta event
+        
+        // Write end of track meta
         midiWriter.Write((byte)0);
         midiWriter.Write([0xFF, 0x2F, 0x00]);
 
-        WriteAsChunk(writer, midiBuffer.AsSpan(0, (int)midiStream.Position), "MTrk");
+        WriteAsChunk(fileWriter, midiBuffer.AsSpan(0, (int)midiStream.Position), "MTrk");
     }
-
-
+    
     private void WriteAsChunk(BinaryWriter writer, ReadOnlySpan<byte> data, string id)
     {
         Span<byte> id4 = stackalloc byte[4];
