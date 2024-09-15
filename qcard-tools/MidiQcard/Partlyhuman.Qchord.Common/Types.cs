@@ -16,14 +16,13 @@ public static class TimeSignatureExtensions
 {
     public static (byte numerator, byte denominator) ToFraction(this TimeSignature ts) => ts switch
     {
-        // denominator is log2(4)
-        TimeSignature.ThreeFourTime => (3, 2),
-        TimeSignature.FourFourTime => (4, 2),
+        TimeSignature.ThreeFourTime => (3, 4),
+        TimeSignature.FourFourTime => (4, 4),
         _ => throw new ArgumentOutOfRangeException(nameof(ts), ts, null),
     };
 }
 
-public enum MidiEvent : byte
+public enum MidiStatus : byte
 {
     NotAnEvent = 0x7, // If first bit is 0, this is value/argument
     NoteOff = 0x8,
@@ -36,18 +35,27 @@ public enum MidiEvent : byte
     SystemExclusive = 0xF,
 }
 
-public static class MidiEventExtensions
+public static class MidiStatusExtensions
 {
-    public static MidiEvent ToEventNibble(this byte b) => (MidiEvent)(b >> 4);
+    public static MidiStatus ToStatusNibble(this byte b) => (MidiStatus)(b >> 4);
+    public static byte ToChannelNibble(this byte b) => (byte)(b & 0xF);
 
-    public static bool IsEvent(this MidiEvent evt) => evt > MidiEvent.NotAnEvent;
+    public static bool IsStatus(this MidiStatus evt) => evt > MidiStatus.NotAnEvent;
 
-    public static int ArgumentLength(this MidiEvent evt) => evt switch
+    public static bool IsChannelReserved(this byte channelOrStatus)
     {
-        MidiEvent.NoteOff => 1,
-        MidiEvent.ProgramChange => 1,
-        MidiEvent.ChannelPressure => 1,
-        MidiEvent.SystemExclusive => 1,
+        // 11 reserved for chords
+        // 14, 15, 16 reserved for strum plate
+        // 1 reserved for melody keyboard
+        return (channelOrStatus & 0xF) is <= 1 or 11 or >= 14;
+    }
+    
+    public static int ArgumentLength(this MidiStatus evt) => evt switch
+    {
+        MidiStatus.NoteOff => 1,
+        MidiStatus.ProgramChange => 1,
+        MidiStatus.ChannelPressure => 1,
+        MidiStatus.SystemExclusive => 1,
         _ => 2,
     };
 }

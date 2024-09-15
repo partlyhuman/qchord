@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -102,7 +103,7 @@ public class QCard
         // Write header
         Span<byte> headerBytes = [0, 0, 0, 1, 0, 0]; // format = 0 (single track midi), tracks = 1
         BinaryPrimitives.WriteUInt16BigEndian(headerBytes[4..], TickDiv); // 48 PPQN
-        WriteChunk(fileWriter, headerBytes, "MThd");
+        WriteChunk(fileWriter, headerBytes, MidiReader.MThd);
 
         // Write midi track into memory instead of to file
         byte[] midiBuffer = new byte[allBytes.Length * 2]; // No way a single track will expand to twice the size of the entire ROM 
@@ -119,7 +120,7 @@ public class QCard
         // Write time signature meta
         midiWriter.Write((byte)0);
         (byte n, byte d) = timeSignatures[trackNum].ToFraction();
-        Span<byte> timeSignatureEvent = [0xFF, 0x58, 0x04, n, d, TickDiv, 8];
+        Span<byte> timeSignatureEvent = [0xFF, 0x58, 0x04, n, (byte)BitOperations.Log2(d), TickDiv, 8];
         midiWriter.Write(timeSignatureEvent);
 
         TrackDataToMidiStream(midiWriter, trackNum, writeTimes: true, suppressSpecials: false);
@@ -128,7 +129,7 @@ public class QCard
         midiWriter.Write((byte)0);
         midiWriter.Write([0xFF, 0x2F, 0x00]);
 
-        WriteChunk(fileWriter, midiBuffer.AsSpan(0, (int)midiStream.Position), "MTrk");
+        WriteChunk(fileWriter, midiBuffer.AsSpan(0, (int)midiStream.Position), MidiReader.MTrk);
     }
 
     private void WriteChunk(BinaryWriter writer, ReadOnlySpan<byte> data, string id)
@@ -155,7 +156,7 @@ public class QCard
         // states
         byte? dt = null;
         byte? status = null;
-        MidiEvent? evt = null;
+        MidiStatus? evt = null;
         while (bytes.Length > 0)
         {
             byte b = bytes[0];
@@ -182,10 +183,10 @@ public class QCard
                 continue;
             }
 
-            MidiEvent eventNibble = b.ToEventNibble();
-            if (eventNibble.IsEvent())
+            MidiStatus statusNibble = b.ToStatusNibble();
+            if (statusNibble.IsStatus())
             {
-                evt = eventNibble;
+                evt = statusNibble;
                 status = b;
                 bytes = bytes[1..];
             }
@@ -195,7 +196,7 @@ public class QCard
                 throw new InvalidOperationException("Should have encountered a status byte by now");
             }
 
-            // If desired, omit certain events from output - many instances of B02C7F and AAXXXX
+            // If desired, omit Qchord specific metronome and chord events
             bool suppress = suppressSpecials && status is 0xB0 or 0xAA;
 
             // Write first timestamp and then for this run all other events happen at same time
@@ -209,10 +210,10 @@ public class QCard
             bytes = bytes[argc..];
 
             // Check for implicit velocity after NoteOff
-            if (evt is MidiEvent.NoteOff)
+            if (evt is MidiStatus.NoteOff)
             {
                 b = bytes[0];
-                if (b.ToEventNibble().IsEvent())
+                if (b.ToStatusNibble().IsStatus())
                 {
                     // next byte starts a new event: write implied velocity 0
                     writer.Write((byte)0);

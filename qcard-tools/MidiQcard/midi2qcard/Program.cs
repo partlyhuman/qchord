@@ -32,6 +32,7 @@ using FileStream outputStream = File.Create(outputPath);
 switch (extensions[0])
 {
     case "bin":
+    {
         QchordMidiTrack[] tracks = inputPaths
             .Select(path => new QchordMidiTrack(File.ReadAllBytes(path)))
             .ToArray();
@@ -40,7 +41,21 @@ switch (extensions[0])
         Console.WriteLine(qCard);
         Console.WriteLine($"Assembled {tracks.Length} raw track[s] into {qCard.Bytes.Length / 1024}kb Qcard {Path.GetFileName(outputPath)}");
         break;
+    }
     case "mid":
     case "midi":
-        throw new NotImplementedException();
+    {
+        QchordMidiTrack[] tracks = inputPaths
+            .Select(midiPath =>
+            {
+                MidiReader reader = new MidiReader(File.ReadAllBytes(midiPath));
+                return QchordMidiTrack.FromMidi(reader);
+            })
+            .ToArray();
+        var qCard = new QCard(tracks);
+        outputStream.Write(qCard.Bytes);
+        Console.WriteLine(qCard);
+        Console.WriteLine($"Converted {tracks.Length} midi files[s] into {qCard.Bytes.Length / 1024}kb Qcard {Path.GetFileName(outputPath)}");
+        break;
+    }
 }
