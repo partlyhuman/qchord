@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text;
 using static Partlyhuman.Qchord.Common.Logger;
 using static Partlyhuman.Qchord.Common.MidiStatus;
@@ -9,42 +10,37 @@ namespace Partlyhuman.Qchord.Common;
 /// </summary>
 public class QcardMidiTrack
 {
+    private const int MicrosPerMinute = 60_000_000;
     public const int DefaultTempoBpm = 120;
     public const TimeSignature DefaultTimeSignature = TimeSignature.FourFourTime;
 
     private readonly byte[] bytes;
-    private int length = 0;
-
     private TimeSignature? timeSignature;
     private int? tempoMicrosPerQuarterNote;
 
-    internal int TempoMicrosPerQuarterNote => tempoMicrosPerQuarterNote!.Value;
-    internal TimeSignature TimeSignature => timeSignature!.Value;
-
-    public ReadOnlySpan<byte> AsSpan() => bytes.AsSpan(0, length);
-
-    private QcardMidiTrack(int size)
-    {
-        bytes = new byte[size];
-    }
+    public ReadOnlySpan<byte> AsSpan() => bytes;
+    internal int TempoMicrosPerQuarterNote => tempoMicrosPerQuarterNote ?? (MicrosPerMinute / DefaultTempoBpm);
+    internal TimeSignature TimeSignature => timeSignature ?? DefaultTimeSignature;
 
     /// Use existing Qcard track data
     public QcardMidiTrack(byte[] raw, int bpm = DefaultTempoBpm, TimeSignature ts = DefaultTimeSignature)
     {
         bytes = raw;
-        length = raw.Length;
-        tempoMicrosPerQuarterNote = (int)(60_000_000L / bpm);
+        tempoMicrosPerQuarterNote = MicrosPerMinute / bpm;
         timeSignature = ts;
     }
 
-
     // Convert from MIDI file
-    public QcardMidiTrack(MidiFileReader midi) : this(midi.GetTrackData().Length)
+    public QcardMidiTrack(MidiFileReader midi)
     {
+        int midiLen = midi.GetTrackData().Length;
+        bytes = new byte[midiLen * 2];
         using MemoryStream stream = new(bytes);
         using BinaryWriter writer = new(stream);
         MidiToQcardTrackData(midi, writer);
-        length = (int)stream.Position;
+        int length = (int)stream.Position;
+        Array.Resize(ref bytes, length);
+        Log($"Input MIDI {midiLen:N0} bytes -> QCard {length:N0} bytes ({(float)length / midiLen:P0})");
     }
 
     private void MidiToQcardTrackData(MidiFileReader reader, BinaryWriter writer)
@@ -53,6 +49,7 @@ public class QcardMidiTrack
         ReadOnlySpan<byte> trackData = reader.GetTrackData();
         MidiParseWarnings warnings = new();
 
+        double tickdivMultiplier = 1;
         bool firstEventInSpan = true;
         byte? status = null;
         while (trackData.Length > 0)
@@ -70,9 +67,6 @@ public class QcardMidiTrack
 
             if (statusNibble is SystemExclusive)
             {
-                // TODO parse tempo and time signature metas - probably do this beforehand as its own loop
-                timeSignature = TimeSignature.FourFourTime;
-                tempoMicrosPerQuarterNote = (int)(60_000_000L / DefaultTempoBpm);
                 switch ((MidiMetaEvent)metaEventType)
                 {
                     case MidiMetaEvent.EndOfTrack:
@@ -80,10 +74,18 @@ public class QcardMidiTrack
                         writer.WriteLogging([0xFF, 0xFE, 0xFE, 0xFE, 0xFE]);
                         break;
                     case MidiMetaEvent.Tempo:
-                        //TODO
+                        tempoMicrosPerQuarterNote = MemoryMarshal.Read<Uint24BigEndian>(argumentBytes);
                         break;
-                    case MidiMetaEvent.TimeSignature:
-                        //TODO
+                    case MidiMetaEvent.TimeSignature when argumentBytes is [var n, var d, var tickdiv, ..]:
+                        timeSignature = TimeSignatureExtensions.FromFraction(n, 1 << d);
+                        // if (tickdiv != QCard.TickDiv)
+                        // {
+                        //     tickdivMultiplier = (double)QCard.TickDiv / tickdiv;
+                        //     Log($"Using tickdiv multiplier of {tickdivMultiplier} to match MIDI tickdiv of {tickdiv}")
+                        // }
+                        break;
+                    default:
+                        Log($"Ignoring unrecognized meta event 0x{metaEventType:X02}");
                         break;
                 }
 
@@ -110,7 +112,7 @@ public class QcardMidiTrack
             else
             {
                 // Omit 0 dt
-                if (status == lastStatus /*&& statusNibble is NoteOn or NoteOff*/)
+                if (status == lastStatus && statusNibble is NoteOn or NoteOff)
                 {
                     // allow running status
                 }
@@ -120,14 +122,14 @@ public class QcardMidiTrack
                 }
             }
 
-            if (statusNibble is NoteOff && argumentBytes.Length == 2 && argumentBytes[1] == 0)
-            {
-                argumentBytes = argumentBytes[..1];
-            }
+            // if (statusNibble is NoteOff && argumentBytes.Length == 2 && argumentBytes[1] == 0)
+            // {
+            //     argumentBytes = argumentBytes[..1];
+            // }
 
             // This would be incorrect in cases like sysex but we're not writing those out
             writer.WriteLogging(argumentBytes);
-            Console.WriteLine();
+            Log("");
         }
 
         warnings.Check(tempoMicrosPerQuarterNote, timeSignature);

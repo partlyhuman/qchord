@@ -22,6 +22,13 @@ public static class TimeSignatureExtensions
         TimeSignature.FourFourTime => (4, 4),
         _ => throw new ArgumentOutOfRangeException(nameof(ts), ts, null),
     };
+
+    public static TimeSignature FromFraction(int n, int d) => (n, d) switch
+    {
+        (3, 4) => TimeSignature.ThreeFourTime,
+        (4, 4) => TimeSignature.FourFourTime,
+        _ => throw new NotImplementedException($"Time signature {n}/{d} unsupported"),
+    };
 }
 
 public enum MidiStatus : byte
