@@ -68,8 +68,8 @@ public class QCard
             tempos[i] = (byte)(track.TempoMicrosPerQuarterNote / 20_000 - 10);
             timeSignatures[i] = track.TimeSignature;
 
-            // Round up to nearest 16
-            trackStartPointer = (trackStartPointer + 0xF) & ~0xF;
+            // Round up to nearest 0x100
+            trackStartPointer = (trackStartPointer + 0xFF) & ~0xFF;
             trackStartPointers[i] = new Uint24BigEndian(trackStartPointer);
             ReadOnlySpan<byte> trackData = track.AsSpan();
             trackData.CopyTo(span[trackStartPointer..]);

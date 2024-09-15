@@ -85,13 +85,13 @@ public class MidiFileReader
             case (MidiStatus.KeyPressure, _):
             case (MidiStatus.ControlChange, _):
             case (MidiStatus.PitchBend, _):
+                argumentBytes = span[2..4]; // 2 bytes
                 len = 4;
-                argumentBytes = span[2..len]; // 2 bytes
                 break;
             case (MidiStatus.ProgramChange, _):
             case (MidiStatus.ChannelPressure, _):
+                argumentBytes = span[2..3]; // 1 byte
                 len = 3;
-                argumentBytes = span[2..len]; // 1 byte
                 break;
             case (MidiStatus.SystemExclusive, 0xF7 or 0xF0):
                 // length in third byte DT 0xF0 LEN ARGS...

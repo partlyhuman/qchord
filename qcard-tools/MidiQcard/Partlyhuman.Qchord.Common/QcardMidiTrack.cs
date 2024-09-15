@@ -51,6 +51,19 @@ public class QcardMidiTrack
         ReadOnlySpan<byte> trackData = reader.GetTrackData();
         MidiParseWarnings warnings = new();
 
+        void Write1(byte b)
+        {
+            writer.Write(b);
+            Console.Write($"{b:X2}");
+        }
+
+        void Write2(ReadOnlySpan<byte> bytes)
+        {
+            writer.Write(bytes);
+            Console.Write(Convert.ToHexString(bytes));
+        }
+
+
         bool firstEventInSpan = true;
         byte? status = null;
         while (trackData.Length > 0)
@@ -59,7 +72,8 @@ public class QcardMidiTrack
             ReadOnlySpan<byte> eventBytes = MidiFileReader.ConsumeMidiEvent(ref trackData, ref status, out byte dt,
                 out MidiStatus statusNibble, out ReadOnlySpan<byte> argumentBytes, out byte metaEventType);
 
-            Console.WriteLine(Convert.ToHexString(eventBytes));
+            Console.WriteLine("< " + Convert.ToHexString(eventBytes));
+            Console.Write("> ");
 
             if (status == null) throw new InvalidOperationException("Status should be set");
 
@@ -70,7 +84,23 @@ public class QcardMidiTrack
                 // TODO parse tempo and time signature metas - probably do this beforehand as its own loop
                 timeSignature = TimeSignature.FourFourTime;
                 tempoMicrosPerQuarterNote = (int)(60_000_000L / DefaultTempoBpm);
+                switch ((MidiMetaEvent)metaEventType)
+                {
+                    case MidiMetaEvent.EndOfTrack:
+                        trackData = [];
+                        Write2([0xFF, 0xFE, 0xFE, 0xFE, 0xFE]);
+                        break;
+                    case MidiMetaEvent.Tempo:
+                        //TODO
+                        break;
+                    case MidiMetaEvent.TimeSignature:
+                        //TODO
+                        break;
+                }
+
                 // ignore meta events
+                status = null;
+                Console.WriteLine();
                 continue;
             }
 
@@ -78,14 +108,17 @@ public class QcardMidiTrack
 
             if (dt != 0 && !firstEventInSpan)
             {
-                writer.Write((byte)0xFF);
+                Write1((byte)0xFF);
+                // writer.Write((byte)0xFF);
                 firstEventInSpan = true;
             }
 
             if (firstEventInSpan)
             {
-                writer.Write(dt);
-                writer.Write(status.Value);
+                Write1(dt);
+                Write1(status.Value);
+                // writer.Write(dt);
+                // writer.Write(status.Value);
                 firstEventInSpan = false;
             }
             else
@@ -97,16 +130,19 @@ public class QcardMidiTrack
                 }
                 else
                 {
-                    writer.Write(status.Value);
+                    Write1(status.Value);
+                    // writer.Write(status.Value);
                 }
             }
 
-            if (statusNibble is NoteOff && argumentBytes.Length == 2 && argumentBytes[1] == 0)
-            {
-                argumentBytes = argumentBytes[..1];
-            }
+            // if (statusNibble is NoteOff && argumentBytes.Length == 2 && argumentBytes[1] == 0)
+            // {
+            //     argumentBytes = argumentBytes[..1];
+            // }
 
-            writer.Write(argumentBytes);
+            Write2(argumentBytes);
+            // writer.Write(argumentBytes);
+            Console.Write("\n");
         }
 
         warnings.Check(tempoMicrosPerQuarterNote, timeSignature);

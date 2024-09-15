@@ -37,6 +37,13 @@ public enum MidiStatus : byte
     SystemExclusive = 0xF,
 }
 
+public enum MidiMetaEvent : byte
+{
+    EndOfTrack = 0x2F,
+    Tempo = 0x51,
+    TimeSignature = 0x58,
+}
+
 public static class MidiStatusExtensions
 {
     public static MidiStatus ToStatusNibble(this byte b) => (MidiStatus)(b >> 4);
