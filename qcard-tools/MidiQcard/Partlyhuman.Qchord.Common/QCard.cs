@@ -70,8 +70,19 @@ public class QCard
 
             // Round up to nearest 0x100
             trackStartPointer = (trackStartPointer + 0xFF) & ~0xFF;
-            trackStartPointers[i] = new Uint24BigEndian(trackStartPointer);
+
             ReadOnlySpan<byte> trackData = track.AsSpan();
+            if (trackStartPointer + trackData.Length > romSize)
+            {
+                Console.WriteLine($"WARNING: No more room on cart, truncating to first {i} songs!\n");
+                trackCount = i;
+                Array.Resize(ref trackStartPointers, trackCount);
+                Array.Resize(ref tempos, trackCount);
+                Array.Resize(ref timeSignatures, trackCount);
+                break;
+            }
+
+            trackStartPointers[i] = new Uint24BigEndian(trackStartPointer);
             trackData.CopyTo(span[trackStartPointer..]);
             // Console.WriteLine($"Placing track {i} length {trackData.Length} at {trackStartPointer:X06}");
             trackStartPointer += trackData.Length;

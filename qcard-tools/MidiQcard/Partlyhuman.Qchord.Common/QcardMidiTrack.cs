@@ -1,4 +1,5 @@
 using System.Text;
+using static Partlyhuman.Qchord.Common.Logger;
 using static Partlyhuman.Qchord.Common.MidiStatus;
 
 namespace Partlyhuman.Qchord.Common;
@@ -36,6 +37,7 @@ public class QcardMidiTrack
         timeSignature = ts;
     }
 
+
     // Convert from MIDI file
     public QcardMidiTrack(MidiFileReader midi) : this(midi.GetTrackData().Length)
     {
@@ -51,19 +53,6 @@ public class QcardMidiTrack
         ReadOnlySpan<byte> trackData = reader.GetTrackData();
         MidiParseWarnings warnings = new();
 
-        void Write1(byte b)
-        {
-            writer.Write(b);
-            Console.Write($"{b:X2}");
-        }
-
-        void Write2(ReadOnlySpan<byte> bytes)
-        {
-            writer.Write(bytes);
-            Console.Write(Convert.ToHexString(bytes));
-        }
-
-
         bool firstEventInSpan = true;
         byte? status = null;
         while (trackData.Length > 0)
@@ -72,8 +61,8 @@ public class QcardMidiTrack
             ReadOnlySpan<byte> eventBytes = MidiFileReader.ConsumeMidiEvent(ref trackData, ref status, out byte dt,
                 out MidiStatus statusNibble, out ReadOnlySpan<byte> argumentBytes, out byte metaEventType);
 
-            Console.WriteLine("< " + Convert.ToHexString(eventBytes));
-            Console.Write("> ");
+            Log("< " + Convert.ToHexString(eventBytes));
+            Log("> ", false);
 
             if (status == null) throw new InvalidOperationException("Status should be set");
 
@@ -88,7 +77,7 @@ public class QcardMidiTrack
                 {
                     case MidiMetaEvent.EndOfTrack:
                         trackData = [];
-                        Write2([0xFF, 0xFE, 0xFE, 0xFE, 0xFE]);
+                        writer.WriteLogging([0xFF, 0xFE, 0xFE, 0xFE, 0xFE]);
                         break;
                     case MidiMetaEvent.Tempo:
                         //TODO
@@ -100,7 +89,7 @@ public class QcardMidiTrack
 
                 // ignore meta events
                 status = null;
-                Console.WriteLine();
+                Log("");
                 continue;
             }
 
@@ -108,41 +97,37 @@ public class QcardMidiTrack
 
             if (dt != 0 && !firstEventInSpan)
             {
-                Write1((byte)0xFF);
-                // writer.Write((byte)0xFF);
+                writer.WriteLogging(0xFF);
                 firstEventInSpan = true;
             }
 
             if (firstEventInSpan)
             {
-                Write1(dt);
-                Write1(status.Value);
-                // writer.Write(dt);
-                // writer.Write(status.Value);
+                writer.WriteLogging(dt);
+                writer.WriteLogging(status.Value);
                 firstEventInSpan = false;
             }
             else
             {
                 // Omit 0 dt
-                if (status == lastStatus && statusNibble is NoteOn or NoteOff)
+                if (status == lastStatus /*&& statusNibble is NoteOn or NoteOff*/)
                 {
                     // allow running status
                 }
                 else
                 {
-                    Write1(status.Value);
-                    // writer.Write(status.Value);
+                    writer.WriteLogging(status.Value);
                 }
             }
 
-            // if (statusNibble is NoteOff && argumentBytes.Length == 2 && argumentBytes[1] == 0)
-            // {
-            //     argumentBytes = argumentBytes[..1];
-            // }
+            if (statusNibble is NoteOff && argumentBytes.Length == 2 && argumentBytes[1] == 0)
+            {
+                argumentBytes = argumentBytes[..1];
+            }
 
-            Write2(argumentBytes);
-            // writer.Write(argumentBytes);
-            Console.Write("\n");
+            // This would be incorrect in cases like sysex but we're not writing those out
+            writer.WriteLogging(argumentBytes);
+            Console.WriteLine();
         }
 
         warnings.Check(tempoMicrosPerQuarterNote, timeSignature);
