@@ -1,3 +1,6 @@
+using System.ComponentModel;
+using static Partlyhuman.Qchord.Common.MidiStatus;
+
 namespace Partlyhuman.Qchord.Common;
 
 public enum CartType : byte
@@ -31,7 +34,7 @@ public enum MidiStatus : byte
     ControlChange = 0xB,
     ProgramChange = 0xC,
     ChannelPressure = 0xD,
-    PitchWheel = 0xE,
+    PitchBend = 0xE,
     SystemExclusive = 0xF,
 }
 
@@ -40,23 +43,37 @@ public static class MidiStatusExtensions
     public static MidiStatus ToStatusNibble(this byte b) => (MidiStatus)(b >> 4);
     public static byte ToChannelNibble(this byte b) => (byte)(b & 0xF);
 
-    public static bool IsStatus(this MidiStatus evt) => evt > MidiStatus.NotAnEvent;
+    public static bool IsStatus(this MidiStatus evt) => evt > NotAnEvent;
 
-    public static bool IsChannelReserved(this byte channelOrStatus)
+    public static bool IsChannelReservedQchord(this byte channelOrStatus)
     {
         // 11 reserved for chords
         // 14, 15, 16 reserved for strum plate
         // 1 reserved for melody keyboard
         return (channelOrStatus & 0xF) is <= 1 or 11 or >= 14;
     }
-    
-    public static int ArgumentLength(this MidiStatus evt) => evt switch
+
+    public static int ArgumentLengthQchord(this MidiStatus evt) => evt switch
     {
-        MidiStatus.NoteOff => 1,
-        MidiStatus.ProgramChange => 1,
-        MidiStatus.ChannelPressure => 1,
-        MidiStatus.SystemExclusive => 1,
+        NoteOff => 1,
+        ProgramChange => 1,
+        ChannelPressure => 1,
+        SystemExclusive => 1,
         _ => 2,
+    };
+
+    public static int? ArgumentLengthMidi(this MidiStatus evt) => evt switch
+    {
+        NotAnEvent => throw new InvalidEnumArgumentException(),
+        NoteOff => 2,
+        NoteOn => 2,
+        KeyPressure => 2,
+        ControlChange => 2,
+        ProgramChange => 1,
+        ChannelPressure => 1,
+        PitchBend => 2,
+        SystemExclusive => null, // must read further
+        _ => throw new ArgumentOutOfRangeException(nameof(evt), evt, null)
     };
 }
 

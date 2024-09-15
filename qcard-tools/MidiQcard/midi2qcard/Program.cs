@@ -33,8 +33,8 @@ switch (extensions[0])
 {
     case "bin":
     {
-        QchordMidiTrack[] tracks = inputPaths
-            .Select(path => new QchordMidiTrack(File.ReadAllBytes(path)))
+        QcardMidiTrack[] tracks = inputPaths
+            .Select(path => new QcardMidiTrack(File.ReadAllBytes(path)))
             .ToArray();
         var qCard = new QCard(tracks);
         outputStream.Write(qCard.Bytes);
@@ -45,12 +45,8 @@ switch (extensions[0])
     case "mid":
     case "midi":
     {
-        QchordMidiTrack[] tracks = inputPaths
-            .Select(midiPath =>
-            {
-                MidiReader reader = new MidiReader(File.ReadAllBytes(midiPath));
-                return QchordMidiTrack.FromMidi(reader);
-            })
+        QcardMidiTrack[] tracks = inputPaths
+            .Select(midiPath => new QcardMidiTrack(new MidiFileReader(File.ReadAllBytes(midiPath))))
             .ToArray();
         var qCard = new QCard(tracks);
         outputStream.Write(qCard.Bytes);

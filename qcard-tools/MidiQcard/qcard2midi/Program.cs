@@ -32,7 +32,7 @@ if (args.Length >= 3)
             Console.WriteLine($"Exported MIDI to {outputPath}");
             break;
         case "bin":
-            qCard.TrackDataToMidiStream(writer, trackNum, writeTimes: false, suppressSpecials: true);
+            qCard.QcardTrackDataToMidiStream(writer, trackNum, writeTimes: false, suppressSpecials: true);
             Console.WriteLine($"Exported raw MIDI event data to {outputPath}");
             break;
         default:
@@ -48,7 +48,7 @@ if (args.Length >= 1)
     string basename = Path.GetFileNameWithoutExtension(inputPath);
     for (int i = 0; i < qCard.TrackCount; i++)
     {
-        string outputPath = Path.Combine(dir, $"{basename}_track{i+1:d2}.mid");
+        string outputPath = Path.Combine(dir, $"{basename}_track{i + 1:d2}.mid");
         using FileStream fileStream = File.Create(outputPath);
         using BinaryWriter writer = new(fileStream);
         qCard.TrackDataToMidiFile(writer, i);
