@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace Partlyhuman.Qchord.Common;
 
 /// <summary>
@@ -42,33 +40,78 @@ public class MidiFileReader
         if (trackRange == null) throw new InvalidOperationException("Did not find track data");
         if (headerRange == null) throw new InvalidOperationException("Did not find header data");
     }
+    //
+    // /// Only concerned with consuming the correct number of bytes, does not move any indexes or return any further data
+    // public static ReadOnlySpan<byte> ReadMidiEvent(ReadOnlySpan<byte> span, byte? runningStatus)
+    // {
+    //     if (span.IsEmpty) return [];
+    //
+    //     byte status = (span[1].IsStatus() ? span[1] : runningStatus) ?? throw new InvalidOperationException("No running status, but not status byte");
+    //
+    //     // if (!statusNibble.IsStatus()) throw new InvalidOperationException("Expected first byte to be a status");
+    //
+    //     int argc = status.ToStatusNibble().ArgumentLengthMidi() ?? status switch
+    //     {
+    //         0xF7 or 0xF0 => span[2] + 1,
+    //         0xFF => span[3] + 2,
+    //         _ => throw new InvalidOperationException($"Status byte {span[1]} invalid in a MIDI file"),
+    //     };
+    //
+    //     return span[..(2 + argc)];
+    // }
 
-    public static ReadOnlySpan<byte> ReadMidiEvent(ReadOnlySpan<byte> span)
+    public static ReadOnlySpan<byte> ConsumeMidiEvent(ref ReadOnlySpan<byte> span, ref byte? status, out byte dt,
+        out MidiStatus statusNibble, out ReadOnlySpan<byte> argumentBytes, out byte metaEventType)
     {
-        Debug.Assert(span[1].ToStatusNibble().IsStatus(), "Expected first byte to be a status");
+        if (span.IsEmpty) throw new ArgumentOutOfRangeException();
 
-        // TODO XXX this method is naive, does not work
-        int argc = span[2..].IndexOfAnyInRange<byte>(0x80, 0xFF) - 2;
-        // Could be the last, return everything 
-        if (argc < 0)
+        // Full event length including timestamp
+        int len = 1;
+        dt = span[0];
+
+        // Running status - replace existing or continue running
+        status = span[1].IsStatus() ? span[1] : status;
+        if (status == null) throw new InvalidOperationException("No running status, but not status byte");
+
+        // if (!statusNibble.IsStatus()) throw new InvalidOperationException("Expected first byte to be a status");
+
+        statusNibble = status.Value.ToStatusNibble();
+        metaEventType = default;
+        int argc;
+        switch (statusNibble, status)
         {
-            return span;
+            case (MidiStatus.NoteOff, _):
+            case (MidiStatus.NoteOn, _):
+            case (MidiStatus.KeyPressure, _):
+            case (MidiStatus.ControlChange, _):
+            case (MidiStatus.PitchBend, _):
+                len = 4;
+                argumentBytes = span[2..len]; // 2 bytes
+                break;
+            case (MidiStatus.ProgramChange, _):
+            case (MidiStatus.ChannelPressure, _):
+                len = 3;
+                argumentBytes = span[2..len]; // 1 byte
+                break;
+            case (MidiStatus.SystemExclusive, 0xF7 or 0xF0):
+                // length in third byte DT 0xF0 LEN ARGS...
+                argc = span[2];
+                len = 3 + argc;
+                argumentBytes = span[3..len];
+                break;
+            case (MidiStatus.SystemExclusive, 0xFF):
+                // length in fourth byte DT 0xFF TYPE LEN ARGS...
+                metaEventType = span[2];
+                argc = span[3];
+                len = 4 + argc;
+                argumentBytes = span[4..len];
+                break;
+            default:
+                throw new InvalidOperationException($"Status byte {status} invalid in a MIDI file");
         }
 
-        Debug.Assert(argc <= 3, $"Unexpected argument length of {argc}");
-
-        return span[..(2 + argc)];
-    }
-
-    public static ReadOnlySpan<byte> ConsumeMidiEvent(ref ReadOnlySpan<byte> span, out byte dt, out byte status, out MidiStatus statusNibble,
-        out ReadOnlySpan<byte> argumentBytes)
-    {
-        ReadOnlySpan<byte> eventSpan = ReadMidiEvent(span);
-        dt = span[0];
-        status = span[1];
-        statusNibble = status.ToStatusNibble();
-        argumentBytes = eventSpan[2..];
-        span = span[eventSpan.Length..];
-        return eventSpan;
+        ReadOnlySpan<byte> evt = span[..len];
+        span = span[len..];
+        return evt;
     }
 }

@@ -52,22 +52,24 @@ public class QcardMidiTrack
         MidiParseWarnings warnings = new();
 
         bool firstEventInSpan = true;
-        byte? runningStatus = null;
+        byte? status = null;
         while (trackData.Length > 0)
         {
-            ReadOnlySpan<byte> eventBytes =
-                MidiFileReader.ConsumeMidiEvent(ref trackData, out byte dt, out byte status, out MidiStatus statusNibble, out var argumentBytes);
+            byte? lastStatus = status;
+            ReadOnlySpan<byte> eventBytes = MidiFileReader.ConsumeMidiEvent(ref trackData, ref status, out byte dt,
+                out MidiStatus statusNibble, out ReadOnlySpan<byte> argumentBytes, out byte metaEventType);
 
             Console.WriteLine(Convert.ToHexString(eventBytes));
 
-            warnings.Check(status, statusNibble, eventBytes);
+            if (status == null) throw new InvalidOperationException("Status should be set");
 
-            // TODO parse tempo and time signature metas - probably do this beforehand as its own loop
-            timeSignature = TimeSignature.FourFourTime;
-            tempoMicrosPerQuarterNote = (int)(60_000_000L / DefaultTempoBpm);
+            warnings.Check(status.Value, statusNibble);
 
             if (statusNibble is SystemExclusive)
             {
+                // TODO parse tempo and time signature metas - probably do this beforehand as its own loop
+                timeSignature = TimeSignature.FourFourTime;
+                tempoMicrosPerQuarterNote = (int)(60_000_000L / DefaultTempoBpm);
                 // ignore meta events
                 continue;
             }
@@ -77,20 +79,26 @@ public class QcardMidiTrack
             if (dt != 0 && !firstEventInSpan)
             {
                 writer.Write((byte)0xFF);
-                runningStatus = null;
                 firstEventInSpan = true;
             }
 
             if (firstEventInSpan)
             {
                 writer.Write(dt);
+                writer.Write(status.Value);
                 firstEventInSpan = false;
             }
-
-            if (status != runningStatus)
+            else
             {
-                writer.Write(status);
-                runningStatus = status;
+                // Omit 0 dt
+                if (status == lastStatus && statusNibble is NoteOn or NoteOff)
+                {
+                    // allow running status
+                }
+                else
+                {
+                    writer.Write(status.Value);
+                }
             }
 
             if (statusNibble is NoteOff && argumentBytes.Length == 2 && argumentBytes[1] == 0)
@@ -115,7 +123,7 @@ class MidiParseWarnings
     private bool hasTempo = false;
     private bool hasTimeSignature = false;
 
-    public void Check(byte status, MidiStatus statusNibble, ReadOnlySpan<byte> argumentBytes)
+    public void Check(byte status, MidiStatus statusNibble)
     {
         if (statusNibble is NoteOff or NoteOn && status.IsChannelReservedQchord())
         {
@@ -127,7 +135,7 @@ class MidiParseWarnings
             hasChordData = true;
         }
 
-        if (status is 0xB0 && argumentBytes.SequenceEqual<byte>([0x2C, 0x7F]))
+        if (status is 0xB0)
         {
             hasMetronomeTicks = true;
         }

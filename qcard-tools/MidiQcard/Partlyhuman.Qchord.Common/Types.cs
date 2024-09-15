@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using static Partlyhuman.Qchord.Common.MidiStatus;
 
 namespace Partlyhuman.Qchord.Common;
@@ -44,6 +43,7 @@ public static class MidiStatusExtensions
     public static byte ToChannelNibble(this byte b) => (byte)(b & 0xF);
 
     public static bool IsStatus(this MidiStatus evt) => evt > NotAnEvent;
+    public static bool IsStatus(this byte status) => status > 0x80;
 
     public static bool IsChannelReservedQchord(this byte channelOrStatus)
     {
@@ -60,20 +60,6 @@ public static class MidiStatusExtensions
         ChannelPressure => 1,
         SystemExclusive => 1,
         _ => 2,
-    };
-
-    public static int? ArgumentLengthMidi(this MidiStatus evt) => evt switch
-    {
-        NotAnEvent => throw new InvalidEnumArgumentException(),
-        NoteOff => 2,
-        NoteOn => 2,
-        KeyPressure => 2,
-        ControlChange => 2,
-        ProgramChange => 1,
-        ChannelPressure => 1,
-        PitchBend => 2,
-        SystemExclusive => null, // must read further
-        _ => throw new ArgumentOutOfRangeException(nameof(evt), evt, null)
     };
 }
 

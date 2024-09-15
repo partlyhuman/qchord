@@ -6,7 +6,7 @@ using System.Text;
 namespace Partlyhuman.Qchord.Common;
 
 /// <summary>
-/// Container for Qcard data.
+/// Container for Qcard data. Converts both ways, can read midi from Qcard, or construct Qcard from converted MIDI tracks.
 /// </summary>
 public class QCard
 {
@@ -126,7 +126,6 @@ public class QCard
         Span<byte> timeSignatureEvent = [0xFF, 0x58, 0x04, n, (byte)BitOperations.Log2(d), TickDiv, 8];
         midiWriter.Write(timeSignatureEvent);
 
-        // TODO Should this construct a QcardMidiTrack?
         QcardTrackDataToMidiStream(midiWriter, trackNum, writeTimes: true, suppressSpecials: false);
 
         // Write end of track meta
@@ -136,6 +135,7 @@ public class QCard
         Chunk.WriteChunk(fileWriter, midiBuffer.AsSpan(0, (int)midiStream.Position), Chunk.MidiTrack);
     }
 
+    // TODO Move to QcardMidiTrack?
     public void QcardTrackDataToMidiStream(BinaryWriter writer, int trackNum, bool writeTimes = true, bool suppressSpecials = false)
     {
         ArgumentNullException.ThrowIfNull(writer);
