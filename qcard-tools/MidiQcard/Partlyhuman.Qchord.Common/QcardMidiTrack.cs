@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 using System.Text;
 using static Partlyhuman.Qchord.Common.Logger;
@@ -15,6 +16,7 @@ public class QcardMidiTrack
     public const TimeSignature DefaultTimeSignature = TimeSignature.FourFourTime;
 
     private readonly byte[] bytes;
+    private readonly double tickDivMultiplier = 1;
     private TimeSignature? timeSignature;
     private int? tempoMicrosPerQuarterNote;
 
@@ -33,6 +35,10 @@ public class QcardMidiTrack
     // Convert from MIDI file
     public QcardMidiTrack(MidiFileReader midi)
     {
+        var midiTickDiv = BinaryPrimitives.ReadUInt16BigEndian(midi.GetHeaderData()[4..6]);
+        tickDivMultiplier = (double)QCard.TickDiv / midiTickDiv;
+        // Log($"midi tickdiv={midiTickDiv} multiplier={tickDivMultiplier}");
+
         int midiLen = midi.GetTrackData().Length;
         bytes = new byte[midiLen * 2];
         using MemoryStream stream = new(bytes);
@@ -40,6 +46,7 @@ public class QcardMidiTrack
         MidiToQcardTrackData(midi, writer);
         int length = (int)stream.Position;
         Array.Resize(ref bytes, length);
+
         Console.WriteLine($"Input MIDI {midiLen:N0} bytes -> QCard {length:N0} bytes ({(float)length / midiLen:P0})");
     }
 
@@ -49,7 +56,6 @@ public class QcardMidiTrack
         ReadOnlySpan<byte> trackData = reader.GetTrackData();
         MidiParseWarnings warnings = new();
 
-        double tickdivMultiplier = 1;
         bool firstEventInSpan = true;
         byte? status = null;
         while (trackData.Length > 0)
@@ -75,14 +81,19 @@ public class QcardMidiTrack
                         break;
                     case MidiMetaEvent.Tempo:
                         tempoMicrosPerQuarterNote = MemoryMarshal.Read<Uint24BigEndian>(argumentBytes);
+                        // Log($"tempo={tempoMicrosPerQuarterNote} multiplier={tickDivMultiplier} bpm={MicrosPerMinute / tempoMicrosPerQuarterNote}");
+                        // tempoMicrosPerQuarterNote = (int)(tempoMicrosPerQuarterNote * tickdivMultiplier);
+                        // Log($"tempo_adjusted={tempoMicrosPerQuarterNote}");
                         break;
-                    case MidiMetaEvent.TimeSignature when argumentBytes is [var n, var d, var tickdiv, ..]:
+                    case MidiMetaEvent.TimeSignature when argumentBytes is [var n, var d, var tickdiv, var b]:
                         timeSignature = TimeSignatureExtensions.FromFraction(n, 1 << d);
+                        // Log($"time signature tickdiv={tickdiv} b={b}");
                         // if (tickdiv != QCard.TickDiv)
                         // {
                         //     tickdivMultiplier = (double)QCard.TickDiv / tickdiv;
-                        //     Log($"Using tickdiv multiplier of {tickdivMultiplier} to match MIDI tickdiv of {tickdiv}")
+                        //     Log($"Using tickdiv multiplier of {tickdivMultiplier} to match MIDI tickdiv of {tickdiv}");
                         // }
+
                         break;
                     default:
                         Log($"Ignoring unrecognized meta event 0x{metaEventType:X02}");
@@ -95,17 +106,18 @@ public class QcardMidiTrack
                 continue;
             }
 
-            // TODO convert dt if PPQN differ
-
             if (dt != 0 && !firstEventInSpan)
             {
-                writer.Write(0xFF);
+                writer.Write((byte)0xFF);
                 firstEventInSpan = true;
             }
 
             if (firstEventInSpan)
             {
-                writer.Write(MidiFileReader.WriteVariableLengthQuantity(dt));
+                // CONVERT DT FROM MIDI RESOLUTION TO QCARD RESOLUTION
+                ReadOnlySpan<byte> dtBytes = MidiFileReader.WriteVariableLengthQuantity((UInt32)(dt * tickDivMultiplier));
+                // LOG($"{dt} -> {dt:X} -> {Convert.ToHexString(dtBytes)}");
+                writer.Write(dtBytes);
                 writer.Write(status.Value);
                 firstEventInSpan = false;
             }
