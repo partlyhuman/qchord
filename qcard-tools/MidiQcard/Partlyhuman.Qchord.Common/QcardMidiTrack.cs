@@ -40,7 +40,7 @@ public class QcardMidiTrack
         MidiToQcardTrackData(midi, writer);
         int length = (int)stream.Position;
         Array.Resize(ref bytes, length);
-        Log($"Input MIDI {midiLen:N0} bytes -> QCard {length:N0} bytes ({(float)length / midiLen:P0})");
+        Console.WriteLine($"Input MIDI {midiLen:N0} bytes -> QCard {length:N0} bytes ({(float)length / midiLen:P0})");
     }
 
     private void MidiToQcardTrackData(MidiFileReader reader, BinaryWriter writer)
@@ -55,7 +55,7 @@ public class QcardMidiTrack
         while (trackData.Length > 0)
         {
             byte? lastStatus = status;
-            ReadOnlySpan<byte> eventBytes = MidiFileReader.ConsumeMidiEvent(ref trackData, ref status, out byte dt,
+            ReadOnlySpan<byte> eventBytes = MidiFileReader.ConsumeMidiEvent(ref trackData, ref status, out uint dt,
                 out MidiStatus statusNibble, out ReadOnlySpan<byte> argumentBytes, out byte metaEventType);
 
             Log("< " + Convert.ToHexString(eventBytes));
@@ -105,14 +105,14 @@ public class QcardMidiTrack
 
             if (firstEventInSpan)
             {
-                writer.WriteLogging(dt);
+                writer.WriteLogging(MidiFileReader.WriteVariableLengthQuantity(dt));
                 writer.WriteLogging(status.Value);
                 firstEventInSpan = false;
             }
             else
             {
                 // Omit 0 dt
-                if (status == lastStatus && statusNibble is NoteOn or NoteOff)
+                if (status == lastStatus /*&& statusNibble is NoteOn or NoteOff*/)
                 {
                     // allow running status
                 }
@@ -122,10 +122,12 @@ public class QcardMidiTrack
                 }
             }
 
-            // if (statusNibble is NoteOff && argumentBytes.Length == 2 && argumentBytes[1] == 0)
-            // {
-            //     argumentBytes = argumentBytes[..1];
-            // }
+            if (statusNibble is NoteOff && argumentBytes.Length == 2 && argumentBytes[1] == 0)
+            {
+                // Not allowed to combine running status with omitted off velocity
+                argumentBytes = argumentBytes[..1];
+                status = null;
+            }
 
             // This would be incorrect in cases like sysex but we're not writing those out
             writer.WriteLogging(argumentBytes);

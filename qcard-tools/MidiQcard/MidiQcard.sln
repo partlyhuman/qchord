@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Partlyhuman.Qchord.Common",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "midi2qcard", "midi2qcard\midi2qcard.csproj", "{B5673689-A41A-4477-BA30-CB4F8B060477}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Partlyhuman.Qchord.Tests", "Partlyhuman.Qchord.Tests\Partlyhuman.Qchord.Tests.csproj", "{9EAF4835-BF02-4009-A9CE-F482C896D49C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{B5673689-A41A-4477-BA30-CB4F8B060477}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B5673689-A41A-4477-BA30-CB4F8B060477}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B5673689-A41A-4477-BA30-CB4F8B060477}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9EAF4835-BF02-4009-A9CE-F482C896D49C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9EAF4835-BF02-4009-A9CE-F482C896D49C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9EAF4835-BF02-4009-A9CE-F482C896D49C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9EAF4835-BF02-4009-A9CE-F482C896D49C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

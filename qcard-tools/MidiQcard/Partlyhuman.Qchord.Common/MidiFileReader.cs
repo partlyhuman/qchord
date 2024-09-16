@@ -60,17 +60,90 @@ public class MidiFileReader
     //     return span[..(2 + argc)];
     // }
 
-    public static ReadOnlySpan<byte> ConsumeMidiEvent(ref ReadOnlySpan<byte> span, ref byte? status, out byte dt,
+    private static byte[] variableLengthBuffer = new byte[4];
+
+    /// Signed return is safe since this only gets up to 7 * 4 = 28 bits
+    public static (UInt32 value, int bytesConsumed) ReadVariableLengthQuantity(ReadOnlySpan<byte> span)
+    {
+        const int maxBytes = 4;
+        const byte highBitMask = 1 << 7;
+
+        // Last byte will have MSB 0
+        var length = 1 + span.IndexOfAnyInRange<byte>(0x00, 0x7F);
+
+        if (length == 1)
+        {
+            return (span[0], length);
+        }
+
+        if (length > maxBytes)
+        {
+            throw new InvalidOperationException($"Reached {maxBytes} bytes without encountering high bit");
+        }
+
+        ReadOnlySpan<byte> temp = span[..length];
+
+        int acc = 0;
+        for (int i = 0; i < length; i++)
+        {
+            acc |= (temp[^(i + 1)] & ~highBitMask) << (7 * i);
+            // if ((i & highBitMask) == 0) return ((UInt32)acc, i+1);
+        }
+
+        return ((UInt32)acc, length);
+    }
+
+    public static ReadOnlySpan<byte> WriteVariableLengthQuantity(UInt32 value)
+    {
+        const int maxBytes = 4;
+        const byte highBitMask = 1 << 7;
+        Span<byte> bytes = variableLengthBuffer;
+        bytes.Clear();
+
+        for (int i = 0; i < maxBytes; i++)
+        {
+            byte element = (byte)(value & ~highBitMask);
+            value >>= 7;
+
+            if (value == 0)
+            {
+                bytes[i] = element;
+                bytes = bytes[..(i + 1)];
+                // bytes.Reverse();
+                return bytes;
+            }
+
+            element |= highBitMask;
+            bytes[i] = element;
+        }
+
+        throw new InvalidOperationException($"Reached {maxBytes} bytes without encountering high bit");
+    }
+
+    public static ReadOnlySpan<byte> ConsumeMidiEvent(ref ReadOnlySpan<byte> span, ref byte? status, out uint dt,
         out MidiStatus statusNibble, out ReadOnlySpan<byte> argumentBytes, out byte metaEventType)
     {
         if (span.IsEmpty) throw new ArgumentOutOfRangeException();
 
+        int len;
+        int argStart;
+
         // Full event length including timestamp
-        int len = 1;
-        dt = span[0];
+        var (value, statusStart) = ReadVariableLengthQuantity(span);
+        dt = value;
 
         // Running status - replace existing or continue running
-        status = span[1].IsStatus() ? span[1] : status;
+        if (span[statusStart].IsStatus())
+        {
+            status = span[statusStart];
+            argStart = statusStart + 1;
+        }
+        else
+        {
+            // keep existing status
+            argStart = statusStart;
+        }
+
         if (status == null) throw new InvalidOperationException("No running status, but not status byte");
 
         // if (!statusNibble.IsStatus()) throw new InvalidOperationException("Expected first byte to be a status");
@@ -85,26 +158,32 @@ public class MidiFileReader
             case (MidiStatus.KeyPressure, _):
             case (MidiStatus.ControlChange, _):
             case (MidiStatus.PitchBend, _):
-                argumentBytes = span[2..4]; // 2 bytes
-                len = 4;
+                // 2 bytes
+                argc = 2;
+                len = argStart + argc;
+                argumentBytes = span[argStart..len];
                 break;
             case (MidiStatus.ProgramChange, _):
             case (MidiStatus.ChannelPressure, _):
-                argumentBytes = span[2..3]; // 1 byte
-                len = 3;
+                // 1 byte
+                argc = 1;
+                len = argStart + argc;
+                argumentBytes = span[argStart..len];
                 break;
             case (MidiStatus.SystemExclusive, 0xF7 or 0xF0):
-                // length in third byte DT 0xF0 LEN ARGS...
-                argc = span[2];
-                len = 3 + argc;
-                argumentBytes = span[3..len];
+                // status followed by length then data
+                // DT 0xF0 LEN ARGS...
+                argc = span[argStart];
+                len = argStart + 1 + argc;
+                argumentBytes = span[(argStart + 1)..len];
                 break;
             case (MidiStatus.SystemExclusive, 0xFF):
-                // length in fourth byte DT 0xFF TYPE LEN ARGS...
-                metaEventType = span[2];
-                argc = span[3];
-                len = 4 + argc;
-                argumentBytes = span[4..len];
+                // status followed by subtype then length then data
+                // DT 0xFF TYPE LEN ARGS...
+                metaEventType = span[argStart];
+                argc = span[argStart + 1];
+                len = argStart + 2 + argc;
+                argumentBytes = span[(argStart + 2)..len];
                 break;
             default:
                 throw new InvalidOperationException($"Status byte {status} invalid in a MIDI file");
