@@ -95,29 +95,35 @@ public class MidiFileReader
 
     public static ReadOnlySpan<byte> WriteVariableLengthQuantity(UInt32 value)
     {
-        const int maxBytes = 4;
         const byte highBitMask = 1 << 7;
+
         Span<byte> bytes = variableLengthBuffer;
+        if (value < 0x80)
+        {
+            bytes[0] = (byte)value;
+            return bytes[..1];
+        }
+
         bytes.Clear();
 
-        for (int i = 0; i < maxBytes; i++)
+        int i = 0;
+        for (; value > 0; i++)
         {
             byte element = (byte)(value & ~highBitMask);
             value >>= 7;
-
-            if (value == 0)
-            {
-                bytes[i] = element;
-                bytes = bytes[..(i + 1)];
-                // bytes.Reverse();
-                return bytes;
-            }
-
-            element |= highBitMask;
             bytes[i] = element;
         }
 
-        throw new InvalidOperationException($"Reached {maxBytes} bytes without encountering high bit");
+        bytes = bytes[..i];
+        bytes.Reverse();
+
+        // Sure we can do this during the loop but this works
+        for (i = 0; i < bytes.Length - 1; i++)
+        {
+            bytes[i] |= 0x80;
+        }
+
+        return bytes;
     }
 
     public static ReadOnlySpan<byte> ConsumeMidiEvent(ref ReadOnlySpan<byte> span, ref byte? status, out uint dt,
