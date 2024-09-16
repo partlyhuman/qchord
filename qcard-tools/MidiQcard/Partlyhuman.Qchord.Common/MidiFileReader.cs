@@ -87,7 +87,6 @@ public class MidiFileReader
         for (int i = 0; i < length; i++)
         {
             acc |= (temp[^(i + 1)] & ~highBitMask) << (7 * i);
-            // if ((i & highBitMask) == 0) return ((UInt32)acc, i+1);
         }
 
         return ((UInt32)acc, length);
