@@ -13,7 +13,7 @@ The header contains identifiers, some in preset fixed locations, and others (in 
 | `0020h`    | 2     | DATA_POINTER  | `*(void*)[TRACKS]` | 2-byte pointer to array of 3-byte pointers to beginning of each track |
 | `0022h`    | 2     | TEMPO_POINTER | `*uint8_t[TRACKS]` | 2-byte pointer to array of 1-byte tempos |
 | `0024h`    | 2     | LENGTH_POINTER| `*uint8_t[TRACKS]` | 2-byte pointer to array of 1-byte time signatures | 
-| `*LENGTH_POINTER` | 1 * TRACKS | LENGTHS | `uint8_t[TRACKS]` | array of time signatures (the length of a measure in ticks, where a quarter note is subdivided into 48 ticks): `SAMBUN_LENGTH = 0x90` for 3/4 time (3 * 48 = 144 = 0x90), or `SABUN_LENGTH = 0xC0` for 4/4 time (4 * 48 = 192 = 0xC0). |
+| `*LENGTH_POINTER` | 1 * TRACKS | LENGTHS | `uint8_t[TRACKS]` | array of time signatures (the length of a measure in ticks, where a quarter note is subdivided into 48 ticks): `SAMBUN_LENGTH = 0x90` for ³⁄₄ time (3 * 48 = 144 = 0x90), or `SABUN_LENGTH = 0xC0` for ⁴⁄₄ time (4 * 48 = 192 = 0xC0). |
 | `*TEMPO_POINTER`  | 1 * TRACKS | TEMPOS  | `uint8_t[TRACKS]` | array of 1-byte tempos, as a clock divider, so that higher values are faster. In MIDI, µs per quarter note = `20000 * (TEMPO + 10)` |
 | `*DATA_POINTER`   | 3 * TRACKS | DATAS   | `(void*)[TRACKS]` | array of 3-byte pointers to the start of each track |
 
