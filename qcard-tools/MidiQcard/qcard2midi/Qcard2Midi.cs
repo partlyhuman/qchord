@@ -28,12 +28,12 @@ if (args.Length >= 3)
     {
         case "mid":
         case "midi":
-            qCard.TrackDataToMidiFile(writer, trackNum);
-            Console.WriteLine($"Exported MIDI to {outputPath}");
+            qCard[trackNum].WriteMidiFile(writer);
+            Console.WriteLine($"Exported track {trackNum} MIDI to {outputPath}");
             break;
         case "bin":
-            qCard.QcardTrackDataToMidiStream(writer, trackNum, writeTimes: false, suppressSpecials: true);
-            Console.WriteLine($"Exported raw MIDI event data to {outputPath}");
+            qCard[trackNum].WriteMidiStream(writer, writeTimes: false, suppressSpecials: true);
+            Console.WriteLine($"Exported track {trackNum} raw MIDI event data to {outputPath}");
             break;
         default:
             throw new ArgumentException("Unsupported output file type, supports .mid/.midi or .bin");
@@ -51,7 +51,7 @@ if (args.Length >= 1)
         string outputPath = Path.Combine(dir, $"{basename}_track{i + 1:d2}.mid");
         using FileStream fileStream = File.Create(outputPath);
         using BinaryWriter writer = new(fileStream);
-        qCard.TrackDataToMidiFile(writer, i);
+        qCard[i].WriteMidiFile(writer);
         Console.WriteLine($"Exported {Path.GetFileName(outputPath)}");
     }
 }

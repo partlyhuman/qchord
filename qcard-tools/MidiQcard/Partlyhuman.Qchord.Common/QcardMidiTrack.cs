@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Text;
 using static System.Buffers.Binary.BinaryPrimitives;
 using static System.Runtime.InteropServices.MemoryMarshal;
@@ -11,7 +12,8 @@ namespace Partlyhuman.Qchord.Common;
 /// </summary>
 public class QcardMidiTrack
 {
-    private const int MicrosPerMinute = 60_000_000;
+    public const int TickDiv = 48;
+    public const int MicrosPerMinute = 60_000_000;
     public const int DefaultTempoBpm = 120;
     public const TimeSignature DefaultTimeSignature = TimeSignature.FourFourTime;
 
@@ -25,10 +27,11 @@ public class QcardMidiTrack
     internal TimeSignature TimeSignature => timeSignature ?? DefaultTimeSignature;
 
     /// Use existing Qcard track data
-    public QcardMidiTrack(byte[] raw, int bpm = DefaultTempoBpm, TimeSignature ts = DefaultTimeSignature)
+    public QcardMidiTrack(byte[] raw, int? tempoMPQN = null, TimeSignature ts = DefaultTimeSignature)
     {
         bytes = raw;
-        tempoMicrosPerQuarterNote = MicrosPerMinute / bpm;
+        // tempoMicrosPerQuarterNote = MicrosPerMinute / bpm;
+        tempoMicrosPerQuarterNote = tempoMPQN ?? MicrosPerMinute / DefaultTempoBpm;
         timeSignature = ts;
     }
 
@@ -36,21 +39,22 @@ public class QcardMidiTrack
     public QcardMidiTrack(MidiFileReader midi)
     {
         var midiTickDiv = ReadUInt16BigEndian(midi.GetHeaderData()[4..6]);
-        tickDivMultiplier = (double)QCard.TickDiv / midiTickDiv;
+        tickDivMultiplier = (double)TickDiv / midiTickDiv;
         // Log($"midi tickdiv={midiTickDiv} multiplier={tickDivMultiplier}");
 
         int midiLen = midi.GetTrackData().Length;
         bytes = new byte[midiLen * 2];
         using MemoryStream stream = new(bytes);
         using BinaryWriter writer = new(stream);
-        MidiToQcardTrackData(midi, writer);
+        FromMidi(midi, writer);
         int length = (int)stream.Position;
         Array.Resize(ref bytes, length);
 
         Console.WriteLine($"Input MIDI {midiLen:N0} bytes -> QCard {length:N0} bytes ({(float)length / midiLen:P0})");
     }
 
-    private void MidiToQcardTrackData(MidiFileReader reader, BinaryWriter writer)
+    // MIDI -> Qcard
+    private void FromMidi(MidiFileReader reader, BinaryWriter writer)
     {
         ArgumentNullException.ThrowIfNull(writer);
         ReadOnlySpan<byte> trackData = reader.GetTrackData();
@@ -149,6 +153,120 @@ public class QcardMidiTrack
         warnings.Check(tempoMicrosPerQuarterNote, timeSignature);
 
         Console.WriteLine(warnings);
+    }
+
+    // QCard -> Midi
+    public void WriteMidiStream(BinaryWriter writer, bool writeTimes = true, bool suppressSpecials = false)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+        ReadOnlySpan<byte> span = AsSpan();
+
+        // states
+        byte? dt = null;
+        byte? status = null;
+        MidiStatus? evt = null;
+        while (span.Length > 0)
+        {
+            byte b = span[0];
+
+            if (b == 0xFE)
+            {
+                span = [];
+                continue;
+            }
+
+            if (dt == null)
+            {
+                dt = b;
+                span = span[1..];
+                continue;
+            }
+
+            if (b == 0xFF)
+            {
+                dt = null;
+                evt = null;
+                status = null;
+                span = span[1..];
+                continue;
+            }
+
+            MidiStatus statusNibble = b.ToStatusNibble();
+            if (statusNibble.IsStatus())
+            {
+                evt = statusNibble;
+                status = b;
+                span = span[1..];
+            }
+
+            if (evt == null || status == null || dt == null)
+            {
+                throw new InvalidOperationException("Should have encountered a status byte by now");
+            }
+
+            // If desired, omit Qchord specific metronome and chord events
+            bool suppress = suppressSpecials && status is 0xB0 or 0xAA;
+
+            // Write first timestamp and then for this run all other events happen at same time
+            if (!suppress && writeTimes) writer.Write(dt.Value);
+            dt = 0;
+
+            // Write status and its argument bytes
+            if (!suppress) writer.Write(status.Value);
+            int argc = evt.Value.ArgumentLengthQchord();
+            if (!suppress) writer.Write(span[..argc]);
+            span = span[argc..];
+
+            // Check for implicit velocity after NoteOff
+            if (evt is NoteOff)
+            {
+                b = span[0];
+                if (b.ToStatusNibble().IsStatus())
+                {
+                    // next byte starts a new event: write implied velocity 0
+                    writer.Write((byte)0);
+                }
+                else
+                {
+                    // next byte is a velocity: write and consume it
+                    writer.Write(b);
+                    span = span[1..];
+                }
+            }
+        }
+    }
+
+    public void WriteMidiFile(BinaryWriter fileWriter)
+    {
+        // Write header
+        Span<byte> headerBytes = [0, 0, 0, 1, 0, 0]; // format = 0 (single track midi), tracks = 1
+        WriteUInt16BigEndian(headerBytes[4..], TickDiv); // 48 PPQN
+        Chunk.WriteChunk(fileWriter, headerBytes, Chunk.MidiHeader);
+
+        // Write midi track into memory instead of to file
+        byte[] midiBuffer = new byte[bytes.Length * 2];
+        using MemoryStream midiStream = new(midiBuffer);
+        using BinaryWriter midiWriter = new(midiStream);
+
+        // Write tempo meta
+        midiWriter.Write((byte)0);
+        Span<byte> tempoEvent = [0xff, 0x51, 0x03, 0, 0, 0];
+        Write(tempoEvent[3..], new Uint24BigEndian(TempoMicrosPerQuarterNote));
+        midiWriter.Write(tempoEvent);
+
+        // Write time signature meta
+        midiWriter.Write((byte)0);
+        (byte n, byte d) = TimeSignature.ToFraction();
+        Span<byte> timeSignatureEvent = [0xFF, 0x58, 0x04, n, (byte)BitOperations.Log2(d), TickDiv, 8];
+        midiWriter.Write(timeSignatureEvent);
+
+        WriteMidiStream(midiWriter, writeTimes: true, suppressSpecials: false);
+
+        // Write end of track meta
+        midiWriter.Write((byte)0);
+        midiWriter.Write([0xFF, 0x2F, 0x00]);
+
+        Chunk.WriteChunk(fileWriter, midiBuffer.AsSpan(0, (int)midiStream.Position), Chunk.MidiTrack);
     }
 }
 

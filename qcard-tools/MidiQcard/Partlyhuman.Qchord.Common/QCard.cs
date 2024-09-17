@@ -1,9 +1,7 @@
-using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 using static System.Buffers.Binary.BinaryPrimitives;
 using static System.Runtime.InteropServices.MemoryMarshal;
-using static Partlyhuman.Qchord.Common.Chunk;
 
 namespace Partlyhuman.Qchord.Common;
 
@@ -13,7 +11,6 @@ namespace Partlyhuman.Qchord.Common;
 public class QCard
 {
     public const int MaxSize = 0x80000; // max with A0-18
-    public const int TickDiv = 48;
 
     private readonly byte[] allBytes;
     private readonly CartType type;
@@ -24,6 +21,13 @@ public class QCard
 
     public int TrackCount => trackCount;
     public ReadOnlySpan<byte> AsSpan() => allBytes.AsSpan();
+
+    public QcardMidiTrack this[int i] => new(
+        // TODO: assumes track pointers monotonically increase
+        raw: allBytes[(int)trackStartPointers[i]..(i + 1 < trackCount ? trackStartPointers[i + 1] : allBytes.Length)],
+        tempoMPQN: TempoToMicrosPerQuarterNote(tempos[i]),
+        ts: timeSignatures[i]
+    );
 
     /// Parse Qcard from ROM
     public QCard(byte[] allBytes)
@@ -114,123 +118,7 @@ public class QCard
         WriteUInt16BigEndian(span[0x20..0x22], dataPointer);
     }
 
-    public void TrackDataToMidiFile(BinaryWriter fileWriter, int trackNum)
-    {
-        // Write header
-        Span<byte> headerBytes = [0, 0, 0, 1, 0, 0]; // format = 0 (single track midi), tracks = 1
-        WriteUInt16BigEndian(headerBytes[4..], TickDiv); // 48 PPQN
-        WriteChunk(fileWriter, headerBytes, MidiHeader);
-
-        // Write midi track into memory instead of to file
-        byte[] midiBuffer = new byte[allBytes.Length * 2]; // No way a single track will expand to twice the size of the entire ROM 
-        using MemoryStream midiStream = new(midiBuffer);
-        using BinaryWriter midiWriter = new(midiStream);
-
-        // Write tempo meta
-        midiWriter.Write((byte)0);
-        Span<byte> tempoEvent = [0xff, 0x51, 0x03, 0, 0, 0];
-        int microsPerQuarterNote = 20_000 * (tempos[trackNum] + 10);
-        Write(tempoEvent[3..], new Uint24BigEndian(microsPerQuarterNote));
-        midiWriter.Write(tempoEvent);
-
-        // Write time signature meta
-        midiWriter.Write((byte)0);
-        (byte n, byte d) = timeSignatures[trackNum].ToFraction();
-        Span<byte> timeSignatureEvent = [0xFF, 0x58, 0x04, n, (byte)BitOperations.Log2(d), TickDiv, 8];
-        midiWriter.Write(timeSignatureEvent);
-
-        QcardTrackDataToMidiStream(midiWriter, trackNum, writeTimes: true, suppressSpecials: false);
-
-        // Write end of track meta
-        midiWriter.Write((byte)0);
-        midiWriter.Write([0xFF, 0x2F, 0x00]);
-
-        WriteChunk(fileWriter, midiBuffer.AsSpan(0, (int)midiStream.Position), MidiTrack);
-    }
-
-    // TODO Move to QcardMidiTrack?
-    public void QcardTrackDataToMidiStream(BinaryWriter writer, int trackNum, bool writeTimes = true, bool suppressSpecials = false)
-    {
-        ArgumentNullException.ThrowIfNull(writer);
-        ArgumentOutOfRangeException.ThrowIfNegative(trackNum);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(trackNum, trackCount);
-
-        ReadOnlySpan<byte> bytes = allBytes.AsSpan(trackStartPointers[trackNum]);
-
-        // states
-        byte? dt = null;
-        byte? status = null;
-        MidiStatus? evt = null;
-        while (bytes.Length > 0)
-        {
-            byte b = bytes[0];
-
-            if (b == 0xFE)
-            {
-                bytes = [];
-                continue;
-            }
-
-            if (dt == null)
-            {
-                dt = b;
-                bytes = bytes[1..];
-                continue;
-            }
-
-            if (b == 0xFF)
-            {
-                dt = null;
-                evt = null;
-                status = null;
-                bytes = bytes[1..];
-                continue;
-            }
-
-            MidiStatus statusNibble = b.ToStatusNibble();
-            if (statusNibble.IsStatus())
-            {
-                evt = statusNibble;
-                status = b;
-                bytes = bytes[1..];
-            }
-
-            if (evt == null || status == null || dt == null)
-            {
-                throw new InvalidOperationException("Should have encountered a status byte by now");
-            }
-
-            // If desired, omit Qchord specific metronome and chord events
-            bool suppress = suppressSpecials && status is 0xB0 or 0xAA;
-
-            // Write first timestamp and then for this run all other events happen at same time
-            if (!suppress && writeTimes) writer.Write(dt.Value);
-            dt = 0;
-
-            // Write status and its argument bytes
-            if (!suppress) writer.Write(status.Value);
-            int argc = evt.Value.ArgumentLengthQchord();
-            if (!suppress) writer.Write(bytes[..argc]);
-            bytes = bytes[argc..];
-
-            // Check for implicit velocity after NoteOff
-            if (evt is MidiStatus.NoteOff)
-            {
-                b = bytes[0];
-                if (b.ToStatusNibble().IsStatus())
-                {
-                    // next byte starts a new event: write implied velocity 0
-                    writer.Write((byte)0);
-                }
-                else
-                {
-                    // next byte is a velocity: write and consume it
-                    writer.Write(b);
-                    bytes = bytes[1..];
-                }
-            }
-        }
-    }
+    public static int TempoToMicrosPerQuarterNote(int t) => 20_000 * (t + 10);
 
     public override string ToString()
     {
