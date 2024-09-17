@@ -90,15 +90,7 @@ QChord uses a preset 48 parts per quarter note subdivision.
 
 ## Chords
 
-The chords that you can play along with are encoded in the song data as `AA` events. In MIDI, these events use `A` as the status nibble, `A` (11) as the channel, followed by two bytes for the note and pressure values. In Qcards, the first byte is always `AA`, the second byte represents the chord, and the third byte is `00`.
-
-The chord byte can be further split into two nibbles:
-
-The *Root note* is represented by the lower digit 0-B.
-
-| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | A | B |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| C | D♭| D | E♭| E | F | F♯| G | A♭| A | B♭| B |
+The chords that you can play along with are encoded in the song data as `AA` key pressure events on channel 11. In Qcards, the first byte is always `AA`, the second byte represents the chord, and the third byte is `00`. The chord byte can be further split into two nibbles:
 
 The *Chord quality* is represented by the upper digit 1-7. It's easiest to visualize these as the result of holding down the chord buttons. There are three rows of buttons on the Qchord, represented by the three bits. The top row, major chords, is the least significant bit `1`; the middle row, minor chords, the second bit `10`; the bottom row, 7th chords, is the most significant bit `100`:
 
@@ -111,6 +103,12 @@ The *Chord quality* is represented by the upper digit 1-7. It's easiest to visua
 | **5** | 1 | 0 | 1 | Major 7th    |
 | **6** | 1 | 1 | 0 | Minor 7th    |
 | **7** | 1 | 1 | 1 | Augmented    |
+
+The *Root note* is represented by the lower digit 0-B.
+
+| **nibble** | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | A | B |
+|------------|---|---|---|---|---|---|---|---|---|---|---|---|
+| **note**   | C | D♭| D | E♭| E | F | F♯| G | A♭| A | B♭| B |
 
 Therefore, the byte `10` is CMaj, the byte `29` is Amin, etc. Again, the full events would be `AA 10 00` and `AA 29 00`.
 
