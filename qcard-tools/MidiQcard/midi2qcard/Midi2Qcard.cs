@@ -37,9 +37,9 @@ switch (extensions[0])
             .Select(path => new QcardMidiTrack(File.ReadAllBytes(path)))
             .ToArray();
         var qCard = new QCard(tracks);
-        outputStream.Write(qCard.Bytes);
+        outputStream.Write(qCard.AsSpan());
         Console.WriteLine(qCard);
-        Console.WriteLine($"Assembled {tracks.Length} raw track[s] into {qCard.Bytes.Length >> 10}kb Qcard {Path.GetFileName(outputPath)}");
+        Console.WriteLine($"Assembled {tracks.Length} raw track[s] into {qCard.AsSpan().Length >> 10}kb Qcard {Path.GetFileName(outputPath)}");
         break;
     }
     case "mid":
@@ -54,9 +54,9 @@ switch (extensions[0])
             .Select(midiPath => new QcardMidiTrack(new MidiFileReader(File.ReadAllBytes(midiPath))))
             .ToArray();
         var qCard = new QCard(tracks);
-        outputStream.Write(qCard.Bytes);
+        outputStream.Write(qCard.AsSpan());
         Console.WriteLine(qCard);
-        Console.WriteLine($"Converted {tracks.Length} midi files[s] into {qCard.Bytes.Length >> 10}kb Qcard {Path.GetFileName(outputPath)}");
+        Console.WriteLine($"Converted {tracks.Length} midi files[s] into {qCard.AsSpan().Length >> 10}kb Qcard {Path.GetFileName(outputPath)}");
         break;
     }
 }

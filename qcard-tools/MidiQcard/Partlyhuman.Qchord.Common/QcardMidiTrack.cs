@@ -1,6 +1,6 @@
-using System.Buffers.Binary;
-using System.Runtime.InteropServices;
 using System.Text;
+using static System.Buffers.Binary.BinaryPrimitives;
+using static System.Runtime.InteropServices.MemoryMarshal;
 using static Partlyhuman.Qchord.Common.Logger;
 using static Partlyhuman.Qchord.Common.MidiStatus;
 
@@ -35,7 +35,7 @@ public class QcardMidiTrack
     // Convert from MIDI file
     public QcardMidiTrack(MidiFileReader midi)
     {
-        var midiTickDiv = BinaryPrimitives.ReadUInt16BigEndian(midi.GetHeaderData()[4..6]);
+        var midiTickDiv = ReadUInt16BigEndian(midi.GetHeaderData()[4..6]);
         tickDivMultiplier = (double)QCard.TickDiv / midiTickDiv;
         // Log($"midi tickdiv={midiTickDiv} multiplier={tickDivMultiplier}");
 
@@ -80,7 +80,7 @@ public class QcardMidiTrack
                         writer.Write([0xFF, 0xFE, 0xFE, 0xFE, 0xFE]);
                         break;
                     case MidiMetaEvent.Tempo:
-                        tempoMicrosPerQuarterNote = MemoryMarshal.Read<Uint24BigEndian>(argumentBytes);
+                        tempoMicrosPerQuarterNote = Read<Uint24BigEndian>(argumentBytes);
                         // Log($"tempo={tempoMicrosPerQuarterNote} multiplier={tickDivMultiplier} bpm={MicrosPerMinute / tempoMicrosPerQuarterNote}");
                         // tempoMicrosPerQuarterNote = (int)(tempoMicrosPerQuarterNote * tickdivMultiplier);
                         // Log($"tempo_adjusted={tempoMicrosPerQuarterNote}");

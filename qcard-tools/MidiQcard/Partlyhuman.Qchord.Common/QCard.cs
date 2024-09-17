@@ -1,7 +1,9 @@
-using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
+using static System.Buffers.Binary.BinaryPrimitives;
+using static System.Runtime.InteropServices.MemoryMarshal;
+using static Partlyhuman.Qchord.Common.Chunk;
 
 namespace Partlyhuman.Qchord.Common;
 
@@ -21,7 +23,7 @@ public class QCard
     private readonly TimeSignature[] timeSignatures;
 
     public int TrackCount => trackCount;
-    public byte[] Bytes => allBytes;
+    public ReadOnlySpan<byte> AsSpan() => allBytes.AsSpan();
 
     /// Parse Qcard from ROM
     public QCard(byte[] allBytes)
@@ -36,13 +38,13 @@ public class QCard
             throw new IndexOutOfRangeException($"Invalid track count {trackCount}");
         }
 
-        int dataPointer = BinaryPrimitives.ReadUInt16BigEndian(span[0x20..0x22]);
-        int tempoPointer = BinaryPrimitives.ReadUInt16BigEndian(span[0x22..0x24]);
-        int timeSignaturePointer = BinaryPrimitives.ReadUInt16BigEndian(span[0x24..0x26]);
+        int dataPointer = ReadUInt16BigEndian(span[0x20..0x22]);
+        int tempoPointer = ReadUInt16BigEndian(span[0x22..0x24]);
+        int timeSignaturePointer = ReadUInt16BigEndian(span[0x24..0x26]);
 
-        timeSignatures = MemoryMarshal.Cast<byte, TimeSignature>(span[timeSignaturePointer..])[..trackCount].ToArray();
+        timeSignatures = Cast<byte, TimeSignature>(span[timeSignaturePointer..])[..trackCount].ToArray();
         tempos = span[tempoPointer..][..trackCount].ToArray();
-        trackStartPointers = MemoryMarshal.Cast<byte, Uint24BigEndian>(span[dataPointer..])[..trackCount].ToArray();
+        trackStartPointers = Cast<byte, Uint24BigEndian>(span[dataPointer..])[..trackCount].ToArray();
     }
 
     /// Create new QCard from tracks
@@ -95,29 +97,29 @@ public class QCard
         // These appear in these order usually
         // TIMESIG, TEMPO, DATA
         UInt16 timeSignaturePointer = (UInt16)headerDataPointer;
-        ReadOnlySpan<byte> timeSignatureBytes = MemoryMarshal.Cast<TimeSignature, byte>(timeSignatures);
+        ReadOnlySpan<byte> timeSignatureBytes = Cast<TimeSignature, byte>(timeSignatures);
         timeSignatureBytes.CopyTo(span[timeSignaturePointer..]);
-        BinaryPrimitives.WriteUInt16BigEndian(span[0x24..0x26], timeSignaturePointer);
+        WriteUInt16BigEndian(span[0x24..0x26], timeSignaturePointer);
         headerDataPointer += timeSignatureBytes.Length;
 
         UInt16 tempoPointer = (UInt16)headerDataPointer;
         // Span<byte> tempoBytes = tempos.AsSpan();
         tempos.CopyTo(span[tempoPointer..]);
-        BinaryPrimitives.WriteUInt16BigEndian(span[0x22..0x24], tempoPointer);
+        WriteUInt16BigEndian(span[0x22..0x24], tempoPointer);
         headerDataPointer += tempos.Length;
 
         UInt16 dataPointer = (UInt16)headerDataPointer;
-        ReadOnlySpan<byte> trackStartPointersBytes = MemoryMarshal.Cast<Uint24BigEndian, byte>(trackStartPointers);
+        ReadOnlySpan<byte> trackStartPointersBytes = Cast<Uint24BigEndian, byte>(trackStartPointers);
         trackStartPointersBytes.CopyTo(span[dataPointer..]);
-        BinaryPrimitives.WriteUInt16BigEndian(span[0x20..0x22], dataPointer);
+        WriteUInt16BigEndian(span[0x20..0x22], dataPointer);
     }
 
     public void TrackDataToMidiFile(BinaryWriter fileWriter, int trackNum)
     {
         // Write header
         Span<byte> headerBytes = [0, 0, 0, 1, 0, 0]; // format = 0 (single track midi), tracks = 1
-        BinaryPrimitives.WriteUInt16BigEndian(headerBytes[4..], TickDiv); // 48 PPQN
-        Chunk.WriteChunk(fileWriter, headerBytes, Chunk.MidiHeader);
+        WriteUInt16BigEndian(headerBytes[4..], TickDiv); // 48 PPQN
+        WriteChunk(fileWriter, headerBytes, MidiHeader);
 
         // Write midi track into memory instead of to file
         byte[] midiBuffer = new byte[allBytes.Length * 2]; // No way a single track will expand to twice the size of the entire ROM 
@@ -128,7 +130,7 @@ public class QCard
         midiWriter.Write((byte)0);
         Span<byte> tempoEvent = [0xff, 0x51, 0x03, 0, 0, 0];
         int microsPerQuarterNote = 20_000 * (tempos[trackNum] + 10);
-        MemoryMarshal.Write(tempoEvent[3..], new Uint24BigEndian(microsPerQuarterNote));
+        Write(tempoEvent[3..], new Uint24BigEndian(microsPerQuarterNote));
         midiWriter.Write(tempoEvent);
 
         // Write time signature meta
@@ -143,7 +145,7 @@ public class QCard
         midiWriter.Write((byte)0);
         midiWriter.Write([0xFF, 0x2F, 0x00]);
 
-        Chunk.WriteChunk(fileWriter, midiBuffer.AsSpan(0, (int)midiStream.Position), Chunk.MidiTrack);
+        WriteChunk(fileWriter, midiBuffer.AsSpan(0, (int)midiStream.Position), MidiTrack);
     }
 
     // TODO Move to QcardMidiTrack?

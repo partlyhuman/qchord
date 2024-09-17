@@ -44,7 +44,7 @@ if (args.Length >= 3)
 
 if (args.Length >= 1)
 {
-    string dir = Path.GetDirectoryName(inputPath);
+    string dir = Path.GetDirectoryName(inputPath)!;
     string basename = Path.GetFileNameWithoutExtension(inputPath);
     for (int i = 0; i < qCard.TrackCount; i++)
     {
