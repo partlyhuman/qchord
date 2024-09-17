@@ -17,7 +17,7 @@ The header contains identifiers, some in preset fixed locations, and others (in 
 | `*TEMPO_POINTER`  | 1 * TRACKS | TEMPOS  | `uint8_t[TRACKS]` | array of 1-byte tempos, as a clock divider, so that higher values are faster. In MIDI, µs per quarter note = `20000 * (TEMPO + 10)` |
 | `*DATA_POINTER`   | 3 * TRACKS | DATAS   | `(void*)[TRACKS]` | array of 3-byte pointers to the start of each track |
 
-While the pointer locations are ordered `DATA_POINTER`, `TEMPO_POINTER`, `LENGTH_POINTER`, the locations they point to are typically laid out in the reverse order, contiguous: `LENGTHS`, `TEMPOS`, `DATAS`. As they are two-byte pointers, please ensure that all values in the array fall within the first 256 bytes of the Qcard.
+While the pointer locations are ordered `DATA_POINTER`, `TEMPO_POINTER`, `LENGTH_POINTER`, the locations they point to are typically laid out in the reverse order, contiguous: `LENGTHS`, `TEMPOS`, `DATAS`. As they are two-byte pointers, please ensure that all values in the array fall within the first 0x10000 bytes of the Qcard.
 
 Note that 2- and 3-byte pointers are read out big-endian, e.g. `00 26` is 0x0026.
 
