@@ -144,9 +144,5 @@ public class QCard
         }
 
         return sb.Append(']').ToString();
-        // var ts = "[" + string.Join(", ", timeSignatures.Select(x => x.ToString())) + "]";
-        // var te = "[" + string.Join(", ", trackTempos.Select(x => x.ToString())) + "]";
-        // var tp = "[" + string.Join(", ", trackPointers.Select(x => ((int)x).ToString("X06"))) + "]";
-        // return $"[QCard type={type} tracks={trackCount} time signatures={ts} tempos={te} track pointers={tp}]";
     }
 }

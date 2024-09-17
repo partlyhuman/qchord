@@ -2,10 +2,10 @@
 
 if (args.Length < 2)
 {
-    Console.WriteLine("<infile>+ <outfile.bin>\n" +
-                      " One or more input files, should be either .bin which will be interpreted as the postprocessed track data,\n" +
-                      " or .mid/.midi which will be converted to Qchord format. Do not mix formats.\n" +
-                      " Output file will be a Qcard ROM if conversion succeeded.");
+    Console.WriteLine($"USAGE: {Path.GetFileName(Environment.ProcessPath)} <infile>+ <outfile.bin>\n" +
+                      "  infile: One or more input files, should be either .bin which will be interpreted as the postprocessed track data,\n" +
+                      "  or .mid/.midi which will be converted to Qchord format. Do not mix formats.\n" +
+                      "  outfile: Output file will be a Qcard ROM if conversion succeeded.");
     return;
 }
 

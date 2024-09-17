@@ -26,7 +26,7 @@ public class QcardMidiTrack
     internal int TempoMicrosPerQuarterNote => tempoMicrosPerQuarterNote ?? (MicrosPerMinute / DefaultTempoBpm);
     internal TimeSignature TimeSignature => timeSignature ?? DefaultTimeSignature;
 
-    /// Use existing Qcard track data
+    /// Use existing Qcard track
     public QcardMidiTrack(byte[] raw, int? tempoMPQN = null, TimeSignature ts = DefaultTimeSignature)
     {
         bytes = raw;
@@ -35,18 +35,23 @@ public class QcardMidiTrack
         timeSignature = ts;
     }
 
-    // Convert from MIDI file
-    public QcardMidiTrack(MidiFileReader midi)
+    // New Qcard track converted from MIDI file
+    public QcardMidiTrack(MidiFileReader reader)
     {
-        var midiTickDiv = ReadUInt16BigEndian(midi.GetHeaderData()[4..6]);
-        tickDivMultiplier = (double)TickDiv / midiTickDiv;
-        // Log($"midi tickdiv={midiTickDiv} multiplier={tickDivMultiplier}");
+        ArgumentNullException.ThrowIfNull(reader);
+        UInt16 midiTickDiv = ReadUInt16BigEndian(reader.GetHeaderData()[4..6]);
+        if (midiTickDiv != TickDiv)
+        {
+            tickDivMultiplier = (double)TickDiv / midiTickDiv;
+            Console.WriteLine(
+                $"WARNING: Mismatching MIDI tickdiv={midiTickDiv} QChord tickdiv={TickDiv}, will scale delta-times by {tickDivMultiplier:N2}. Possible loss of accuracy.");
+        }
 
-        int midiLen = midi.GetTrackData().Length;
+        int midiLen = reader.GetTrackData().Length;
         bytes = new byte[midiLen * 2];
         using MemoryStream stream = new(bytes);
         using BinaryWriter writer = new(stream);
-        FromMidi(midi, writer);
+        FromMidi(reader, writer);
         int length = (int)stream.Position;
         Array.Resize(ref bytes, length);
 
@@ -56,16 +61,17 @@ public class QcardMidiTrack
     // MIDI -> Qcard
     private void FromMidi(MidiFileReader reader, BinaryWriter writer)
     {
+        ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(writer);
-        ReadOnlySpan<byte> trackData = reader.GetTrackData();
+        ReadOnlySpan<byte> midiData = reader.GetTrackData();
         MidiParseWarnings warnings = new();
 
         bool firstEventInSpan = true;
         byte? status = null;
-        while (trackData.Length > 0)
+        while (midiData.Length > 0)
         {
             byte? lastStatus = status;
-            ReadOnlySpan<byte> eventBytes = MidiFileReader.ConsumeMidiEvent(ref trackData, ref status, out uint dt,
+            ReadOnlySpan<byte> eventBytes = MidiFileReader.ConsumeMidiEvent(ref midiData, ref status, out uint dt,
                 out MidiStatus statusNibble, out ReadOnlySpan<byte> argumentBytes, out byte metaEventType);
 
             // Log("< " + Convert.ToHexString(eventBytes));
@@ -80,7 +86,7 @@ public class QcardMidiTrack
                 switch ((MidiMetaEvent)metaEventType)
                 {
                     case MidiMetaEvent.EndOfTrack:
-                        trackData = [];
+                        midiData = [];
                         writer.Write([0xFF, 0xFE, 0xFE, 0xFE, 0xFE]);
                         break;
                     case MidiMetaEvent.Tempo:

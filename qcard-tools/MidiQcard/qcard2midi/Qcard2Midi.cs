@@ -3,9 +3,9 @@ using Partlyhuman.Qchord.Common;
 
 if (args.Length < 1)
 {
-    Console.Out.WriteLine("<path to qcard> [song number] [output file]\n" +
-                          " Output file can be .bin for raw midi events, .mid/.midi for a midi file\n" +
-                          " Omit output file and all tracks will be generated.");
+    Console.Out.WriteLine($"USAGE: {Path.GetFileName(Environment.ProcessPath)} <path to qcard> [song number] [output file]\n" +
+                          "  Output file can be .bin for a single Qcard track data, .mid/.midi for a playable type 0 midi file.\n" +
+                          "  Omit song number and output file, and all tracks will be extracted from Qcard.");
     return;
 }
 
