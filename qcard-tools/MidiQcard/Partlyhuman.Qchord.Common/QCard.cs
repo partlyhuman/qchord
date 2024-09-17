@@ -22,9 +22,9 @@ public class QCard
     public int TrackCount => trackCount;
     public ReadOnlySpan<byte> AsSpan() => allBytes.AsSpan();
 
+    /// NOTE: Makes copy
     public QcardMidiTrack this[int i] => new(
-        // TODO: assumes track pointers monotonically increase
-        raw: allBytes[(int)trackStartPointers[i]..(i + 1 < trackCount ? trackStartPointers[i + 1] : allBytes.Length)],
+        raw: GetTrackSpan(i).ToArray(),
         tempoMPQN: TempoToMicrosPerQuarterNote(tempos[i]),
         ts: timeSignatures[i]
     );
@@ -116,6 +116,21 @@ public class QCard
         ReadOnlySpan<byte> trackStartPointersBytes = Cast<Uint24BigEndian, byte>(trackStartPointers);
         trackStartPointersBytes.CopyTo(span[dataPointer..]);
         WriteUInt16BigEndian(span[0x20..0x22], dataPointer);
+    }
+
+    /// <summary>
+    /// Without looking for the end, slice the minimum span for a track by going up until the next track start.
+    /// Does not assume tracks are in order.
+    /// </summary>
+    private ReadOnlySpan<byte> GetTrackSpan(int trackNum)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(trackNum);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(trackNum, trackCount);
+
+        int start = trackStartPointers[trackNum];
+        // End of range is exclusive, so the first byte of the next song won't be consumed
+        int end = trackStartPointers.Select(ptr => (int)ptr).Where(ptr => ptr > start).DefaultIfEmpty(0).Min();
+        return allBytes.AsSpan(start..(end > 0 ? end : allBytes.Length));
     }
 
     public static int TempoToMicrosPerQuarterNote(int t) => 20_000 * (t + 10);
