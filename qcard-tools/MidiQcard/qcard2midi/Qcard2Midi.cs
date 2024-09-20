@@ -48,6 +48,11 @@ if (args.Length >= 1)
     string basename = Path.GetFileNameWithoutExtension(inputPath);
     for (int i = 0; i < qCard.TrackCount; i++)
     {
+        // Temporary - export all tracks raw, could be used for recombination, tighter packing
+        // string outputPath = Path.Combine(dir, $"{basename}_track{i + 1:d2}.bin");
+        // File.WriteAllBytes(outputPath, qCard[i].AsSpan().ToArray());
+        // Console.WriteLine($"Exported {Path.GetFileName(outputPath)}");
+
         string outputPath = Path.Combine(dir, $"{basename}_track{i + 1:d2}.mid");
         using FileStream fileStream = File.Create(outputPath);
         using BinaryWriter writer = new(fileStream);

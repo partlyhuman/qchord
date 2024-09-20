@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+    <configuration default="false" name="Distributable midi2qcard win" type="DotNetFolderPublish" factoryName="Publish to folder">
+        <riderPublish configuration="Release" delete_existing_files="true" platform="Any CPU" produce_single_file="true" ready_to_run="true"
+                      runtime="win-x64" self_contained="true" target_folder="$PROJECT_DIR$/midi2qcard/bin/Release/net8.0/win-x64/publish"
+                      target_framework="net8.0" trim_unused_assemblies="true" uuid_high="-5375267665451793289" uuid_low="-5030297241277561737"/>
+        <method v="2"/>
+    </configuration>
+</component>

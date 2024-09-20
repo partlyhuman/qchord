@@ -16,6 +16,7 @@ public class QcardMidiTrack
     public const int MicrosPerMinute = 60_000_000;
     public const int DefaultTempoBpm = 120;
     public const TimeSignature DefaultTimeSignature = TimeSignature.FourFourTime;
+    public static readonly byte[] EndMarker = [0xFF, 0xFE, 0xFE, 0xFE, 0xFE];
 
     private readonly byte[] bytes;
     private readonly double tickDivMultiplier = 1;
@@ -29,10 +30,15 @@ public class QcardMidiTrack
     /// Use existing Qcard track
     public QcardMidiTrack(byte[] raw, int? tempoMPQN = null, TimeSignature ts = DefaultTimeSignature)
     {
-        bytes = raw;
         // tempoMicrosPerQuarterNote = MicrosPerMinute / bpm;
         tempoMicrosPerQuarterNote = tempoMPQN ?? MicrosPerMinute / DefaultTempoBpm;
         timeSignature = ts;
+
+        // No trimming
+        // bytes = raw;
+
+        // Trim out garbage
+        bytes = raw[..(raw.AsSpan().IndexOf(EndMarker) + EndMarker.Length)];
     }
 
     // New Qcard track converted from MIDI file
@@ -87,7 +93,7 @@ public class QcardMidiTrack
                 {
                     case MidiMetaEvent.EndOfTrack:
                         midiData = [];
-                        writer.Write([0xFF, 0xFE, 0xFE, 0xFE, 0xFE]);
+                        writer.Write(EndMarker);
                         break;
                     case MidiMetaEvent.Tempo:
                         tempoMicrosPerQuarterNote = Read<Uint24BigEndian>(argumentBytes);
@@ -278,7 +284,7 @@ public class QcardMidiTrack
 
 class MidiParseWarnings
 {
-    private HashSet<byte> invalidChannelUsages = new();
+    private readonly HashSet<byte> invalidChannelUsages = new();
     private bool hasChordData = false;
     private bool hasMetronomeTicks = false;
     private bool hasTempo = false;
