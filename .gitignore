@@ -3,6 +3,7 @@
 /lyricsheets/
 
 \#auto_saved_files\#
+*.lck
 
 
 # Don't commit gerber zips
