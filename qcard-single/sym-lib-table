@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "REB_FLASH")(type "Legacy")(uri "${KIPRJMOD}/Libraries/ul_SST39SF040-55-4C-WHE-T.lib")(options "")(descr ""))
+)
