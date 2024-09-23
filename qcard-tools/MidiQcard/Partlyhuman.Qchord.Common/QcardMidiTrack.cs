@@ -54,12 +54,11 @@ public class QcardMidiTrack
         }
 
         int midiLen = reader.GetTrackData().Length;
-        bytes = new byte[midiLen * 2];
-        using MemoryStream stream = new(bytes);
+        using MemoryStream stream = new();
         using BinaryWriter writer = new(stream);
         FromMidi(reader, writer);
         int length = (int)stream.Position;
-        Array.Resize(ref bytes, length);
+        bytes = stream.GetBuffer()[..length];
 
         Console.WriteLine($"Input MIDI {midiLen:N0} bytes -> QCard {length:N0} bytes ({(float)length / midiLen:P0})");
     }
@@ -256,13 +255,12 @@ public class QcardMidiTrack
         Chunk.WriteChunk(fileWriter, headerBytes, Chunk.MidiHeader);
 
         // Write midi track into memory instead of to file
-        byte[] midiBuffer = new byte[bytes.Length * 2];
-        using MemoryStream midiStream = new(midiBuffer);
+        using MemoryStream midiStream = new();
         using BinaryWriter midiWriter = new(midiStream);
 
         // Write tempo meta
         midiWriter.Write((byte)0);
-        Span<byte> tempoEvent = [0xff, 0x51, 0x03, 0, 0, 0];
+        Span<byte> tempoEvent = [0xFF, 0x51, 0x03, 0, 0, 0];
         Write(tempoEvent[3..], new Uint24BigEndian(TempoMicrosPerQuarterNote));
         midiWriter.Write(tempoEvent);
 
@@ -278,7 +276,8 @@ public class QcardMidiTrack
         midiWriter.Write((byte)0);
         midiWriter.Write([0xFF, 0x2F, 0x00]);
 
-        Chunk.WriteChunk(fileWriter, midiBuffer.AsSpan(0, (int)midiStream.Position), Chunk.MidiTrack);
+        ReadOnlySpan<byte> midiBytes = midiStream.GetBuffer().AsSpan(0, (int)midiStream.Position);
+        Chunk.WriteChunk(fileWriter, midiBytes, Chunk.MidiTrack);
     }
 }
 

@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Partlyhuman.Qchord.Common;
 
-if (args.Length < 1)
+if (args.Length is not (1 or 3))
 {
     Console.Out.WriteLine($"USAGE: {Path.GetFileName(Environment.ProcessPath)} <path to qcard> [song number] [output file]\n" +
                           "  Output file can be .bin for a single Qcard track data, .mid/.midi for a playable type 0 midi file.\n" +
@@ -13,12 +13,12 @@ string inputPath = args[0];
 QCard qCard = new(File.ReadAllBytes(inputPath));
 Console.WriteLine(qCard);
 
-if (args.Length >= 3)
+// qcard2midi INFILE.BIN TRACK OUT.MID
+if (args.Length == 3)
 {
     int trackNum = int.Parse(args[1]) - 1;
     Debug.Assert(trackNum >= 0);
     string outputPath = args[2];
-
 
     if (File.Exists(outputPath)) File.Delete(outputPath);
     using FileStream fileStream = File.Create(outputPath);
@@ -42,7 +42,8 @@ if (args.Length >= 3)
     return;
 }
 
-if (args.Length >= 1)
+// qcard2midi QCARD.BIN
+if (args.Length == 1)
 {
     string dir = Path.GetDirectoryName(inputPath)!;
     string basename = Path.GetFileNameWithoutExtension(inputPath);
