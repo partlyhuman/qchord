@@ -54,10 +54,11 @@ public class QCard
     public QCard(QcardMidiTrack[] tracks, int romSize = MaxSize)
     {
         allBytes = new byte[romSize];
-        type = CartType.SongCart;
-        trackCount = tracks.Length;
         Span<byte> span = allBytes.AsSpan();
         span.Fill(0xFF); // Make things quicker to flash
+
+        type = CartType.SongCart;
+        trackCount = tracks.Length;
 
         // Alloc then fill out
         trackStartPointers = new Uint24BigEndian[trackCount];

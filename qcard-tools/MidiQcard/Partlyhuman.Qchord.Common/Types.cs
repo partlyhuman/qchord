@@ -57,14 +57,14 @@ public static class MidiStatusExtensions
     public static byte ToChannelNibble(this byte b) => (byte)(b & 0xF);
 
     public static bool IsStatus(this MidiStatus evt) => evt > NotAnEvent;
-    public static bool IsStatus(this byte status) => status > 0x80;
+    public static bool IsStatus(this byte status) => status >= 0x80; // Was >
 
     public static bool IsChannelReservedQchord(this byte channelOrStatus)
     {
-        // 11 reserved for chords
-        // 14, 15, 16 reserved for strum plate
         // 1 reserved for melody keyboard
-        return (channelOrStatus & 0xF) is <= 1 or 11 or >= 14;
+        // 2, 4 unknown currently
+        // 14, 15, 16 reserved for strum plate
+        return ((channelOrStatus & 0xF) + 1) is 1 or 2 or 4 or >= 14;
     }
 
     public static int ArgumentLengthQchord(this MidiStatus evt) => evt switch

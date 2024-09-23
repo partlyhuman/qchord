@@ -18,12 +18,12 @@ public class QcardMidiTrack
     public const TimeSignature DefaultTimeSignature = TimeSignature.FourFourTime;
     public static readonly byte[] EndMarker = [0xFF, 0xFE, 0xFE, 0xFE, 0xFE];
 
-    private readonly byte[] bytes;
+    private readonly byte[] allBytes;
     private readonly double tickDivMultiplier = 1;
     private TimeSignature? timeSignature;
     private int? tempoMicrosPerQuarterNote;
 
-    public ReadOnlySpan<byte> AsSpan() => bytes;
+    public ReadOnlySpan<byte> AsSpan() => allBytes;
     internal int TempoMicrosPerQuarterNote => tempoMicrosPerQuarterNote ?? (MicrosPerMinute / DefaultTempoBpm);
     internal TimeSignature TimeSignature => timeSignature ?? DefaultTimeSignature;
 
@@ -31,7 +31,7 @@ public class QcardMidiTrack
     public QcardMidiTrack(ReadOnlySpan<byte> raw, int? tempoMPQN = null, TimeSignature ts = DefaultTimeSignature)
     {
         // Make copy of bytes up to and including the first EOT marker
-        bytes = raw[..(raw.IndexOf(EndMarker) + EndMarker.Length)].ToArray();
+        allBytes = raw[..(raw.IndexOf(EndMarker) + EndMarker.Length)].ToArray();
         tempoMicrosPerQuarterNote = tempoMPQN ?? MicrosPerMinute / DefaultTempoBpm;
         timeSignature = ts;
     }
@@ -48,13 +48,13 @@ public class QcardMidiTrack
                 $"WARNING: Mismatching MIDI tickdiv={midiTickDiv} QChord tickdiv={TickDiv}, will scale delta-times by {tickDivMultiplier:N2}. Possible loss of accuracy.");
         }
 
-        int midiLen = reader.GetTrackData().Length;
         using MemoryStream stream = new();
         using BinaryWriter writer = new(stream);
         FromMidi(reader, writer);
-        int length = (int)stream.Position;
-        bytes = stream.GetBuffer()[..length];
+        allBytes = stream.GetBuffer()[..(int)stream.Position];
 
+        int length = allBytes.Length;
+        int midiLen = reader.GetTrackData().Length;
         Console.WriteLine($"Input MIDI {midiLen:N0} bytes -> QCard {length:N0} bytes ({(float)length / midiLen:P0})");
     }
 
@@ -125,9 +125,21 @@ public class QcardMidiTrack
             if (firstEventInSpan)
             {
                 // CONVERT DT FROM MIDI RESOLUTION TO QCARD RESOLUTION
-                ReadOnlySpan<byte> dtBytes = MidiFileReader.WriteVariableLengthQuantity((UInt32)(dt * tickDivMultiplier));
+                var dtAdjusted = (UInt32)(dt * tickDivMultiplier);
+
+                // IF qchord supports variable length times
+                // ReadOnlySpan<byte> dtBytes = MidiFileReader.WriteVariableLengthQuantity(dtAdjusted);
                 // LOG($"{dt} -> {dt:X} -> {Convert.ToHexString(dtBytes)}");
-                writer.Write(dtBytes);
+                // writer.Write(dtBytes);
+
+                // NOTE: I *assume* qchord does not support variable length times
+                if (dtAdjusted >= 0x80)
+                {
+                    throw new InvalidOperationException($"Adjusted delta-time of {dtAdjusted} (originally {dt}) is too large to fit in one byte." +
+                                                        $"Qcard does not support variable length delta-time.");
+                }
+
+                writer.Write((byte)dtAdjusted);
                 writer.Write(status.Value);
                 firstEventInSpan = false;
             }
@@ -227,7 +239,7 @@ public class QcardMidiTrack
             if (evt is NoteOff)
             {
                 b = span[0];
-                if (b.ToStatusNibble().IsStatus())
+                if (b.IsStatus())
                 {
                     // next byte starts a new event: write implied velocity 0
                     writer.Write((byte)0);
@@ -264,6 +276,11 @@ public class QcardMidiTrack
         (byte n, byte d) = TimeSignature.ToFraction();
         Span<byte> timeSignatureEvent = [0xFF, 0x58, 0x04, n, (byte)BitOperations.Log2(d), TickDiv, 8];
         midiWriter.Write(timeSignatureEvent);
+
+        // NOTE TOTALLY FAKED CMaj! Needed for MIDI players?
+        // Write Key Signature meta
+        midiWriter.Write((byte)0);
+        midiWriter.Write([0xFF, 0x59, 0x02, 0, 0]);
 
         WriteMidiStream(midiWriter, writeTimes: true, suppressSpecials: false);
 
