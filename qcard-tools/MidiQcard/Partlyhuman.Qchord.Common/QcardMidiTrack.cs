@@ -28,17 +28,12 @@ public class QcardMidiTrack
     internal TimeSignature TimeSignature => timeSignature ?? DefaultTimeSignature;
 
     /// Use existing Qcard track
-    public QcardMidiTrack(byte[] raw, int? tempoMPQN = null, TimeSignature ts = DefaultTimeSignature)
+    public QcardMidiTrack(ReadOnlySpan<byte> raw, int? tempoMPQN = null, TimeSignature ts = DefaultTimeSignature)
     {
-        // tempoMicrosPerQuarterNote = MicrosPerMinute / bpm;
+        // Make copy of bytes up to and including the first EOT marker
+        bytes = raw[..(raw.IndexOf(EndMarker) + EndMarker.Length)].ToArray();
         tempoMicrosPerQuarterNote = tempoMPQN ?? MicrosPerMinute / DefaultTempoBpm;
         timeSignature = ts;
-
-        // No trimming
-        // bytes = raw;
-
-        // Trim out garbage
-        bytes = raw[..(raw.AsSpan().IndexOf(EndMarker) + EndMarker.Length)];
     }
 
     // New Qcard track converted from MIDI file

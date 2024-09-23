@@ -22,11 +22,10 @@ public class QCard
     public int TrackCount => trackCount;
     public ReadOnlySpan<byte> AsSpan() => allBytes.AsSpan();
 
-    /// NOTE: Makes copy
     public QcardMidiTrack this[int i] => new(
-        raw: GetTrackSpan(i).ToArray(),
-        tempoMPQN: TempoToMicrosPerQuarterNote(tempos[i]),
-        ts: timeSignatures[i]
+        allBytes.AsSpan(trackStartPointers[i]),
+        TempoByteToMicrosPerQuarterNote(tempos[i]),
+        timeSignatures[i]
     );
 
     /// Parse Qcard from ROM
@@ -42,9 +41,9 @@ public class QCard
             throw new IndexOutOfRangeException($"Invalid track count {trackCount}");
         }
 
-        int dataPointer = ReadUInt16BigEndian(span[0x20..0x22]);
-        int tempoPointer = ReadUInt16BigEndian(span[0x22..0x24]);
-        int timeSignaturePointer = ReadUInt16BigEndian(span[0x24..0x26]);
+        int dataPointer = ReadUInt16BigEndian(span[0x20..]);
+        int tempoPointer = ReadUInt16BigEndian(span[0x22..]);
+        int timeSignaturePointer = ReadUInt16BigEndian(span[0x24..]);
 
         timeSignatures = Cast<byte, TimeSignature>(span[timeSignaturePointer..])[..trackCount].ToArray();
         tempos = span[tempoPointer..][..trackCount].ToArray();
@@ -72,7 +71,7 @@ public class QCard
         for (int i = 0; i < trackCount; i++)
         {
             QcardMidiTrack track = tracks[i];
-            tempos[i] = (byte)(track.TempoMicrosPerQuarterNote / 20_000 - 10);
+            tempos[i] = MicrosPerQuarterNoteToTempoByte(track.TempoMicrosPerQuarterNote);
             timeSignatures[i] = track.TimeSignature;
 
             // Round up to nearest 0x100
@@ -104,24 +103,27 @@ public class QCard
         UInt16 timeSignaturePointer = (UInt16)headerDataPointer;
         ReadOnlySpan<byte> timeSignatureBytes = Cast<TimeSignature, byte>(timeSignatures);
         timeSignatureBytes.CopyTo(span[timeSignaturePointer..]);
-        WriteUInt16BigEndian(span[0x24..0x26], timeSignaturePointer);
+        WriteUInt16BigEndian(span[0x24..], timeSignaturePointer);
         headerDataPointer += timeSignatureBytes.Length;
 
         UInt16 tempoPointer = (UInt16)headerDataPointer;
         // Span<byte> tempoBytes = tempos.AsSpan();
         tempos.CopyTo(span[tempoPointer..]);
-        WriteUInt16BigEndian(span[0x22..0x24], tempoPointer);
+        WriteUInt16BigEndian(span[0x22..], tempoPointer);
         headerDataPointer += tempos.Length;
 
         UInt16 dataPointer = (UInt16)headerDataPointer;
         ReadOnlySpan<byte> trackStartPointersBytes = Cast<Uint24BigEndian, byte>(trackStartPointers);
         trackStartPointersBytes.CopyTo(span[dataPointer..]);
-        WriteUInt16BigEndian(span[0x20..0x22], dataPointer);
+        WriteUInt16BigEndian(span[0x20..], dataPointer);
     }
 
+    private static int TempoByteToMicrosPerQuarterNote(int t) => 20_000 * (t + 10);
+    private static byte MicrosPerQuarterNoteToTempoByte(int mpqn) => (byte)(mpqn / 20_000 - 10);
+
     /// <summary>
-    /// Without looking for the end, slice the minimum span for a track by going up until the next track start.
-    /// Does not assume tracks are in order.
+    /// Without looking for the end marker, slice the minimum span for a track by going up until the next track start.
+    /// Not used since <see cref="QcardMidiTrack(ReadOnlySpan{byte},int?,TimeSignature)"/> now does trim to end marker
     /// </summary>
     private ReadOnlySpan<byte> GetTrackSpan(int trackNum)
     {
@@ -133,8 +135,6 @@ public class QCard
         int end = trackStartPointers.Select(ptr => (int)ptr).Where(ptr => ptr > start).DefaultIfEmpty(0).Min();
         return allBytes.AsSpan(start..(end > 0 ? end : allBytes.Length));
     }
-
-    public static int TempoToMicrosPerQuarterNote(int t) => 20_000 * (t + 10);
 
     public override string ToString()
     {

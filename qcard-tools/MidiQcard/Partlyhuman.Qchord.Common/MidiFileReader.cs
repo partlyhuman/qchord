@@ -60,7 +60,7 @@ public class MidiFileReader
     //     return span[..(2 + argc)];
     // }
 
-    private static byte[] variableLengthBuffer = new byte[4];
+    private static readonly byte[] VariableLengthBuffer = new byte[4];
 
     /// Signed return is safe since this only gets up to 7 * 4 = 28 bits
     public static (UInt32 value, int bytesConsumed) ReadVariableLengthQuantity(ReadOnlySpan<byte> span)
@@ -96,7 +96,7 @@ public class MidiFileReader
     {
         const byte highBitMask = 1 << 7;
 
-        Span<byte> bytes = variableLengthBuffer;
+        Span<byte> bytes = VariableLengthBuffer;
         if (value < 0x80)
         {
             bytes[0] = (byte)value;
