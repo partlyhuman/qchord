@@ -65,22 +65,26 @@ Additionally, the channels are pre-assigned to be muted and activated by the "Au
 | ------- | --------- | --- | ----- |
 | 1  |   | MELODY KEYBOARD | Reserved for user playing on melody keyboard (piano mode). Metronome inserted on this channel (not audible).
 | 2  |   | ??? | 
-| 3  | 🆗 | CHORD PLUS | Song data, muted by "Chord Plus" button. Should be the main melody.
+| 3  | ☑️ | CHORD PLUS | Song data, muted by "Chord Plus" button. Should be the main melody.
 | 4  |   | ???
-| 5  | 🆗 | AUTO CHORD 1 | Song data, muted by "Auto Chord" button. Should be accompaniment.
-| 6  | 🆗 | AUTO CHORD 2 | Song data, muted by "Auto Chord" button. Should be accompaniment.
-| 7  | 🆗 | AUTO CHORD 3 | Song data, muted by "Auto Chord" button. Should be accompaniment.
-| 8  | 🆗 | AUTO CHORD 4 | Song data, muted by "Auto Chord" button. Should be accompaniment.
-| 9  | 🆗 | BASS | Song data. Should be bassline.
-| 10 | 🆗 | DRUMS | Song data. Drums should be on this channel.
-| 11 |   | CHORD DATA | Reserved for chord data (not audible).
-| 12 |   | ???
-| 13 |   | ???
+| 5  | ☑️ | AUTO CHORD 1 | Song data, muted by "Auto Chord" button. Should be accompaniment.
+| 6  | ☑️ | AUTO CHORD 2 | Song data, muted by "Auto Chord" button. Should be accompaniment.
+| 7  | ☑️ | AUTO CHORD 3 | Song data, muted by "Auto Chord" button. Should be accompaniment.
+| 8  | ☑️ | AUTO CHORD 4 | Song data, muted by "Auto Chord" button. Should be accompaniment.
+| 9  | ☑️ | BASS | Song data. Should be bassline.
+| 10 | ☑️ | DRUMS | Song data. Drums should be on this channel.
+| 11 | 🆗 | CHORD DATA | Reserved for chord data.
+| 12 | 🆗 | EXTRA | Extra channels for song data.
+| 13 | 🆗 | EXTRA | Extra channels for song data.
 | 14 |   | STRUMPLATE | Reserved for user playing on strum bar.
 | 15 |   | STRUMPLATE | Reserved for user playing on strum bar.
 | 16 |   | STRUMPLATE | Reserved for user playing on strum bar.
 
-I would consider channels 3, 5-10 as "safe mode." It's possible channels 2, 4, 12, 13 could also be used for song data.
+SAFE MODE: Channels 3 + 5-10 can be considered "safe mode." All Qcard songs use them and they have a single assigned purpose. (7 channels)
+
+Extended mode: Channels 12-13 are also used in some QCards, so using them is fine too. Some songs use notes on channel 11. This brings the extended total to 10 channels.
+
+Generally one channel is used per instrument, but some Qcard songs do program changes!
 
 ## Tempo
 
@@ -113,6 +117,26 @@ The *Root note* is represented by the lower digit 0-B.
 | **note**   | C | D♭| D | E♭| E | F | F♯| G | A♭| A | B♭| B |
 
 Therefore, the byte `10` is CMaj, the byte `29` is Amin, etc. Again, the full events would be `AA 10 00` and `AA 29 00`.
+
+## Lead in and out
+
+Some common initialization sequences found at the beginning of all QChord-flavoured MIDI:
+
+* Control Change / program channels / 121 Reset all controllers / 0
+* Control Change / program channels / 7 Volume / [0-127]
+* Control Change / program channels / 10 Pan / [0-127, 64=center]
+* Control Change / program channels / 91 Reverb Send Level / [0-127]
+* Control Change / program channels / 93 Chorus Send Level / [0-127]
+* Control Change / program channels / 1 Modulation / 0
+* Control Change / program channels / 64 Hold 1 / 0
+* Pitch Bend / program channels / 0
+* Program Change / program channels / [Set up instruments]
+* Program Change / drums 10 / 0 Piano 1 [? curious, maybe drums override this]
+* Program Change / chords 11 / [65, 51... does this set strum instrument?]
+
+Not everything takes place at 00:00, these are spread out along the first second. The ordering changes but 121 reset all comes first. Pan is used, supporting stereo, just not on the built-in mono speaker.
+
+Nothing special seems to happen at the end of tracks.
 
 ## Reference implementation
 
