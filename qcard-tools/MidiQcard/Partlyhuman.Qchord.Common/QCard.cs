@@ -58,6 +58,7 @@ public class QCard
         type = CartType.SongCart;
         trackCount = tracks.Length;
         Span<byte> span = allBytes.AsSpan();
+        span.Fill(0xFF); // Make things quicker to flash
 
         // Alloc then fill out
         trackStartPointers = new Uint24BigEndian[trackCount];
