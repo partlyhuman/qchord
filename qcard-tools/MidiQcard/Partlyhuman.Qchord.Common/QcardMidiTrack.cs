@@ -277,12 +277,12 @@ public class QcardMidiTrack
         Span<byte> timeSignatureEvent = [0xFF, 0x58, 0x04, n, (byte)BitOperations.Log2(d), TickDiv, 8];
         midiWriter.Write(timeSignatureEvent);
 
-        // NOTE TOTALLY FAKED CMaj! Needed for MIDI players?
-        // Write Key Signature meta
-        midiWriter.Write((byte)0);
-        midiWriter.Write([0xFF, 0x59, 0x02, 0, 0]);
+        // // NOTE TOTALLY FAKED CMaj! Needed for MIDI players?
+        // // Write Key Signature meta
+        // midiWriter.Write((byte)0);
+        // midiWriter.Write([0xFF, 0x59, 0x02, 0, 0]);
 
-        WriteMidiStream(midiWriter, writeTimes: true, suppressSpecials: false);
+        WriteMidiStream(midiWriter, writeTimes: true, suppressSpecials: true);
 
         // Write end of track meta
         midiWriter.Write((byte)0);
