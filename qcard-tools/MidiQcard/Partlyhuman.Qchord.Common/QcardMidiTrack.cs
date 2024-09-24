@@ -40,7 +40,7 @@ public class QcardMidiTrack
     public QcardMidiTrack(MidiFileReader reader)
     {
         ArgumentNullException.ThrowIfNull(reader);
-        UInt16 midiTickDiv = ReadUInt16BigEndian(reader.GetHeaderData()[4..6]);
+        UInt16 midiTickDiv = ReadUInt16BigEndian(reader.GetHeaderData()[4..]);
         if (midiTickDiv != TickDiv)
         {
             tickDivMultiplier = (double)TickDiv / midiTickDiv;

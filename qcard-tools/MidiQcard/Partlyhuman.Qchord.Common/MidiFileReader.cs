@@ -40,25 +40,6 @@ public class MidiFileReader
         if (trackRange == null) throw new InvalidOperationException("Did not find track data");
         if (headerRange == null) throw new InvalidOperationException("Did not find header data");
     }
-    //
-    // /// Only concerned with consuming the correct number of bytes, does not move any indexes or return any further data
-    // public static ReadOnlySpan<byte> ReadMidiEvent(ReadOnlySpan<byte> span, byte? runningStatus)
-    // {
-    //     if (span.IsEmpty) return [];
-    //
-    //     byte status = (span[1].IsStatus() ? span[1] : runningStatus) ?? throw new InvalidOperationException("No running status, but not status byte");
-    //
-    //     // if (!statusNibble.IsStatus()) throw new InvalidOperationException("Expected first byte to be a status");
-    //
-    //     int argc = status.ToStatusNibble().ArgumentLengthMidi() ?? status switch
-    //     {
-    //         0xF7 or 0xF0 => span[2] + 1,
-    //         0xFF => span[3] + 2,
-    //         _ => throw new InvalidOperationException($"Status byte {span[1]} invalid in a MIDI file"),
-    //     };
-    //
-    //     return span[..(2 + argc)];
-    // }
 
     private static readonly byte[] VariableLengthBuffer = new byte[4];
 
@@ -197,5 +178,19 @@ public class MidiFileReader
         ReadOnlySpan<byte> evt = span[..len];
         span = span[len..];
         return evt;
+    }
+
+    public long SumDuration()
+    {
+        ReadOnlySpan<byte> span = GetTrackData();
+        long duration = 0;
+        byte? status = null;
+        while (!span.IsEmpty)
+        {
+            ConsumeMidiEvent(ref span, ref status, out uint dt, out _, out _, out _);
+            duration += dt;
+        }
+
+        return duration;
     }
 }
