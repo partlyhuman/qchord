@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "qcard2midi", "qcard2midi\qcard2midi.csproj", "{F9C2AF56-0414-464F-B0FC-BBE37F7AD6CF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "qcard", "qcard\qcard.csproj", "{F9C2AF56-0414-464F-B0FC-BBE37F7AD6CF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Partlyhuman.Qchord.Common", "Partlyhuman.Qchord.Common\Partlyhuman.Qchord.Common.csproj", "{D4A81142-4518-490D-A034-61E24B39438F}"
 EndProject

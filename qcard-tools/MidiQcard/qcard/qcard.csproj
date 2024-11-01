@@ -11,7 +11,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Partlyhuman.Qchord.Common\Partlyhuman.Qchord.Common.csproj" />
+        <ProjectReference Include="..\Partlyhuman.Qchord.Common\Partlyhuman.Qchord.Common.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="CommandLineParser" Version="2.9.1"/>
     </ItemGroup>
 
 </Project>
