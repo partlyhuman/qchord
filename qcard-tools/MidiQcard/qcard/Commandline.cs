@@ -24,9 +24,19 @@ class ExtractOptions
 }
 
 
-[Verb("build", HelpText = "Create a QCard from MIDI tracks")]
+[Verb("build", HelpText = "Create a QCard from individual tracks")]
 class BuildOptions
 {
+    [Value(0, MetaName = "output", HelpText = "QCard file to assemble")]
+    public string QcardPath { get; set; }
+
+    [Value(1, Min = 1, MetaName = "inputs", HelpText = "One or more MIDI files OR Qchord track files to assemble")]
+    public IEnumerable<string> InputPaths { get; set; }
+
+    [Option('f', "format", Required = false,
+        HelpText =
+            "BIN: assembles QCard out of Qchord track data. MIDI: converts MIDI type 0 files to tracks. If omitted, inferred from input file extensions")]
+    public Format? Format { get; set; }
 }
 
 internal static class Commandline
@@ -40,7 +50,59 @@ internal static class Commandline
             with.CaseInsensitiveEnumValues = true;
         });
         parser.ParseArguments<ExtractOptions, BuildOptions>(args)
-            .WithParsed<ExtractOptions>(Extract);
+            .WithParsed<ExtractOptions>(Extract)
+            .WithParsed<BuildOptions>(Build);
+    }
+
+    private static void Build(BuildOptions opts)
+    {
+        string GetExt(string path) => Path.GetExtension(path).Trim('.').ToLower();
+
+        string[] inputPaths = opts.InputPaths.ToArray();
+        string outputPath = opts.QcardPath;
+
+        if (GetExt(outputPath) != "bin")
+        {
+            throw new ArgumentException("Expect an output file to end in .bin");
+        }
+
+        if (File.Exists(outputPath)) File.Delete(outputPath);
+        using FileStream outputStream = File.Create(outputPath);
+
+        Format format = opts.Format ?? Enum.Parse<Format>(GetExt(inputPaths[0]).Replace("mid", "midi"), ignoreCase: true);
+
+        switch (format)
+        {
+            case Format.BIN:
+            {
+                QcardMidiTrack[] tracks = inputPaths
+                    .Select(path => new QcardMidiTrack(File.ReadAllBytes(path)))
+                    .ToArray();
+                var qCard = new QCard(tracks);
+                outputStream.Write(qCard.AsSpan());
+                Console.WriteLine(
+                    $"Assembled {tracks.Length} raw track[s] into {qCard.AsSpan().Length >> 10}kb Qcard {Path.GetFileName(outputPath)}");
+                Console.WriteLine(qCard);
+                break;
+            }
+            case Format.MIDI:
+            {
+                // // DEBUG: dump a single track
+                // var track = new QcardMidiTrack(new MidiFileReader(File.ReadAllBytes(inputPaths[0])));
+                // outputStream.Write(track.AsSpan());
+                // Console.WriteLine($"Wrote single track data to {outputPath}");
+
+                QcardMidiTrack[] tracks = inputPaths
+                    .Select(midiPath => new QcardMidiTrack(new MidiFileReader(File.ReadAllBytes(midiPath))))
+                    .ToArray();
+                var qCard = new QCard(tracks);
+                outputStream.Write(qCard.AsSpan());
+                Console.WriteLine(
+                    $"Converted {tracks.Length} midi files[s] into {qCard.AsSpan().Length >> 10}kb Qcard {Path.GetFileName(outputPath)}");
+                Console.WriteLine(qCard);
+                break;
+            }
+        }
     }
 
     private static void Extract(ExtractOptions opts)

@@ -4,8 +4,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "qcard", "qcard\qcard.csproj
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Partlyhuman.Qchord.Common", "Partlyhuman.Qchord.Common\Partlyhuman.Qchord.Common.csproj", "{D4A81142-4518-490D-A034-61E24B39438F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "midi2qcard", "midi2qcard\midi2qcard.csproj", "{B5673689-A41A-4477-BA30-CB4F8B060477}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Partlyhuman.Qchord.Tests", "Partlyhuman.Qchord.Tests\Partlyhuman.Qchord.Tests.csproj", "{9EAF4835-BF02-4009-A9CE-F482C896D49C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "qcardmiditools", "qcardmiditools\qcardmiditools.csproj", "{5DBFFA6D-D2B6-43F4-BAA6-78BB2C789457}"
@@ -24,10 +22,6 @@ Global
 		{D4A81142-4518-490D-A034-61E24B39438F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D4A81142-4518-490D-A034-61E24B39438F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D4A81142-4518-490D-A034-61E24B39438F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B5673689-A41A-4477-BA30-CB4F8B060477}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B5673689-A41A-4477-BA30-CB4F8B060477}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B5673689-A41A-4477-BA30-CB4F8B060477}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B5673689-A41A-4477-BA30-CB4F8B060477}.Release|Any CPU.Build.0 = Release|Any CPU
 		{9EAF4835-BF02-4009-A9CE-F482C896D49C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9EAF4835-BF02-4009-A9CE-F482C896D49C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9EAF4835-BF02-4009-A9CE-F482C896D49C}.Release|Any CPU.ActiveCfg = Release|Any CPU
