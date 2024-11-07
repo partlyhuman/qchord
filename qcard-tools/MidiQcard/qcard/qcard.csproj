@@ -8,6 +8,8 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <IsPackable>false</IsPackable>
         <RootNamespace>QcardToMidi</RootNamespace>
+        <Company>@partlyhuman</Company>
+        <Product>QCard commandline</Product>
     </PropertyGroup>
 
     <ItemGroup>

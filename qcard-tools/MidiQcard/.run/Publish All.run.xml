@@ -33,42 +33,6 @@
                 </option>
                 <option name="executable">
                     <ExecutableSnapshot>
-                        <option name="id" value="runConfig:Publish to folder.Distributable midi2qcard win"/>
-                    </ExecutableSnapshot>
-                </option>
-            </ExecutableRowSnapshot>
-            <ExecutableRowSnapshot>
-                <option name="condition">
-                    <ConditionSnapshot>
-                        <option name="type" value="afterPreviousFinished"/>
-                    </ConditionSnapshot>
-                </option>
-                <option name="executable">
-                    <ExecutableSnapshot>
-                        <option name="id" value="runConfig:Publish to folder.Distributable midi2qcard osx"/>
-                    </ExecutableSnapshot>
-                </option>
-            </ExecutableRowSnapshot>
-            <ExecutableRowSnapshot>
-                <option name="condition">
-                    <ConditionSnapshot>
-                        <option name="type" value="afterPreviousFinished"/>
-                    </ConditionSnapshot>
-                </option>
-                <option name="executable">
-                    <ExecutableSnapshot>
-                        <option name="id" value="runConfig:Publish to folder.Distributable midi2qcard osx-arm64"/>
-                    </ExecutableSnapshot>
-                </option>
-            </ExecutableRowSnapshot>
-            <ExecutableRowSnapshot>
-                <option name="condition">
-                    <ConditionSnapshot>
-                        <option name="type" value="afterPreviousFinished"/>
-                    </ConditionSnapshot>
-                </option>
-                <option name="executable">
-                    <ExecutableSnapshot>
                         <option name="id" value="runConfig:Publish to folder.Distributable qcard2midi osx-arm64"/>
                     </ExecutableSnapshot>
                 </option>
