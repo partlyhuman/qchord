@@ -18,7 +18,7 @@ A single cartridge that contains the entire Q-Card library, selectable by dip sw
 
 ![PCB rendering](docs/rw-front.jpg)
 
-A rewriteable reproduction QCard PCB using SMD components. The flash module uses a TSOP32 package. It can be reprogrammed after assembly with the programmer adapter below, and write-protected with a solder jumper
+A rewriteable reproduction QCard PCB using SMD components. The flash module uses a TSOP32 package. It can be reprogrammed after assembly with the programmer adapter below.
 
 
 # qcard-case
