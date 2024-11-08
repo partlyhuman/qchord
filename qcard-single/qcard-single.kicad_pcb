@@ -2814,6 +2814,17 @@
 			(pintype "input")
 			(uuid "dbb50e73-76fe-45ea-9528-9a39aecb3d70")
 		)
+		(model "${KIPRJMOD}/Libraries/ul_SST39SF040-55-4C-WHE-T.step"
+			(offset
+				(xyz 0 0 0)
+			)
+			(scale
+				(xyz 1 1 1)
+			)
+			(rotate
+				(xyz 0 0 0)
+			)
+		)
 	)
 	(footprint "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder"
 		(layer "F.Cu")

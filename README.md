@@ -14,9 +14,9 @@ You can get one as long as stock lasts <a href="https://ko-fi.com/s/ca15ec594a">
 A single cartridge that contains the entire Q-Card library, selectable by dip switches. The flash should be programmed prior to assembly, by concatenating the 4Mbit dumps you can find on archive.org.
 
 
-# qcard-tsop32
+# qcard-single
 
-![PCB rendering](docs/screenshot-pcb.png)
+![PCB rendering](docs/rw-front.jpg)
 
 A rewriteable reproduction QCard PCB using SMD components. The flash module uses a TSOP32 package. It can be reprogrammed after assembly with the programmer adapter below, and write-protected with a solder jumper
 
