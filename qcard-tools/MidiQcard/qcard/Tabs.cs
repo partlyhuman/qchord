@@ -93,41 +93,37 @@ internal static partial class Tabs
 
         while (lines.ReadLine() is { } line)
         {
-            MatchCollection matches = TabRegex().Matches(line);
-
-            if (!matches.Any())
+            // Do a little extra work to only process lines that begin with a match - e.g. don't try to match inside lyrics (like the word "am")
+            Match firstMatch = TabRegex().Match(line);
+            if (firstMatch.Success && string.IsNullOrWhiteSpace(line[..firstMatch.Index]))
             {
-                Console.Write(line);
+                Console.WriteLine(ParseLine(line));
             }
             else
             {
-                // TODO reject lines that have stuff before matches.First().Index (treat as lyrics)
-                // TODO modify to a replacer function and pass through whitespace
-
-                foreach (Match match in matches)
-                {
-                    if (ParseRoot(match.Groups["note"].Value) is not { } root)
-                    {
-                        continue;
-                    }
-
-                    ChordQuality[] qualities = match.Groups["quality"].Captures.Select(c => ParseQuality(c.Value)).ToArray();
-                    ChordQuality quality = qualities.Length switch
-                    {
-                        0 => ChordQuality.Maj,
-                        1 => qualities[0],
-                        _ => qualities.Aggregate(Combine),
-                    };
-
-                    Span<byte> midiEvent = [0xAA, (byte)((int)root | (int)quality), 0];
-
-                    // Console.Write($"{match.Value} => {root}{quality} => {Convert.ToHexString(midiEvent)}  ");
-                    Console.Write(Convert.ToHexString(midiEvent));
-                    Console.Write("\t");
-                }
+                Console.WriteLine(line);
             }
-
-            Console.WriteLine();
         }
     }
+
+    private static string ParseLine(string line) => TabRegex().Replace(line, match =>
+    {
+        if (ParseRoot(match.Groups["note"].Value) is not { } root)
+        {
+            return match.Value;
+        }
+
+        ChordQuality[] qualities = match.Groups["quality"].Captures.Select(c => ParseQuality(c.Value)).ToArray();
+        ChordQuality quality = qualities.Length switch
+        {
+            0 => ChordQuality.Maj,
+            1 => qualities[0],
+            _ => qualities.Aggregate(Combine),
+        };
+
+        Span<byte> midiEvent = [0xAA, (byte)((int)root | (int)quality), 0];
+
+        // Console.Write($"{match.Value} => {root}{quality} => {Convert.ToHexString(midiEvent)}  "); // DEBUG
+        return Convert.ToHexString(midiEvent);
+    });
 }
