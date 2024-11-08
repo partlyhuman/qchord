@@ -2,39 +2,42 @@ using System.Text.RegularExpressions;
 
 namespace Partlyhuman.Qchord;
 
-internal record struct Chord(Chord.Root root, Chord.Quality quality)
-{
-    public enum Root
-    {
-        C = 0,
-        Cs = 1,
-        Db = 1,
-        D = 2,
-        Ds = 3,
-        Eb = 3,
-        E = 4,
-        F = 5,
-        Fs = 6,
-        Gb = 6,
-        G = 7,
-        Gs = 8,
-        Ab = 8,
-        A = 9,
-        As = 10,
-        Bb = 10,
-        B = 11,
-    }
+internal record struct Chord(ChordRoot Root, ChordQuality Quality);
 
-    public enum Quality
-    {
-        Maj = 1,
-        Min = 2,
-        Dim = 3,
-        _7 = 4,
-        Maj7 = 5,
-        Min7 = 6,
-        Aug = 7,
-    }
+/// Values correspond to the midi event's upper nibble
+/// (<a href="https://github.com/partlyhuman/qchord/blob/master/qcards/README.md#chords">docs</a>)
+internal enum ChordQuality : byte
+{
+    Maj = 1 << 4,
+    Min = 2 << 4,
+    Dim = 3 << 4,
+    _7 = 4 << 4,
+    Maj7 = 5 << 4,
+    Min7 = 6 << 4,
+    Aug = 7 << 4,
+}
+
+/// Values correspond to the midi event's lower nibble
+/// (<a href="https://github.com/partlyhuman/qchord/blob/master/qcards/README.md#chords">docs</a>)
+internal enum ChordRoot : byte
+{
+    C = 0,
+    Cs = 1,
+    Db = 1,
+    D = 2,
+    Ds = 3,
+    Eb = 3,
+    E = 4,
+    F = 5,
+    Fs = 6,
+    Gb = 6,
+    G = 7,
+    Gs = 8,
+    Ab = 8,
+    A = 9,
+    As = 10,
+    Bb = 10,
+    B = 11,
 }
 
 /// <summary>
@@ -44,21 +47,21 @@ internal record struct Chord(Chord.Root root, Chord.Quality quality)
 /// </summary>
 internal static partial class Tabs
 {
-    private static Chord.Quality Combine(Chord.Quality a, Chord.Quality b) => (a, b) switch
+    private static ChordQuality Combine(ChordQuality a, ChordQuality b) => (a, b) switch
     {
-        (Chord.Quality.Maj, Chord.Quality._7) => Chord.Quality.Maj7,
-        (Chord.Quality.Min, Chord.Quality._7) => Chord.Quality.Min7,
+        (ChordQuality.Maj, ChordQuality._7) => ChordQuality.Maj7,
+        (ChordQuality.Min, ChordQuality._7) => ChordQuality.Min7,
         _ => b,
     };
 
-    private static Chord.Root? ParseRoot(string str)
+    private static ChordRoot? ParseRoot(string str)
     {
         if (string.IsNullOrEmpty(str))
         {
             return null;
         }
 
-        if (Enum.TryParse(str.Replace("#", "s"), ignoreCase: true, out Chord.Root root))
+        if (Enum.TryParse(str.Replace("#", "s").Replace("\u266f", "s").Replace("\u266d", "b"), /*ignoreCase: true,*/ out ChordRoot root))
         {
             return root;
         }
@@ -66,17 +69,17 @@ internal static partial class Tabs
         return null;
     }
 
-    private static Chord.Quality ParseQuality(string str) => str switch
+    private static ChordQuality ParseQuality(string str) => str switch
     {
-        "m" or "min" => Chord.Quality.Min,
-        "M" or "maj" or "Maj" => Chord.Quality.Maj,
-        "aug" or "+" => Chord.Quality.Aug,
-        "7" => Chord.Quality._7,
-        _ => Chord.Quality.Maj,
+        "m" or "min" or "-" => ChordQuality.Min,
+        "M" or "maj" or "Maj" => ChordQuality.Maj,
+        "aug" or "+" => ChordQuality.Aug,
+        "7" or "7th" => ChordQuality._7,
+        _ => ChordQuality.Maj,
     };
 
     // ReSharper disable once StringLiteralTypo
-    [GeneratedRegex(@"\b(?<note>[ABCDEFG][#b]?)\s?(?<quality>m|M|min|Maj|maj|\+|aug|sus|7){0,2}\b")]
+    [GeneratedRegex(@"\b(?<note>[ABCDEFG][#♯b♭]?)\s?(?<quality>m|M|min|Maj|maj|\+|\-|aug|sus|7|7th){0,2}\b")]
     private static partial Regex TabRegex();
 
     public static void ConvertTabs(ConvertTabsOptions opts)
@@ -108,15 +111,19 @@ internal static partial class Tabs
                         continue;
                     }
 
-                    Chord.Quality[] qualities = match.Groups["quality"].Captures.Select(c => ParseQuality(c.Value)).ToArray();
-                    Chord.Quality quality = qualities.Length switch
+                    ChordQuality[] qualities = match.Groups["quality"].Captures.Select(c => ParseQuality(c.Value)).ToArray();
+                    ChordQuality quality = qualities.Length switch
                     {
-                        0 => Chord.Quality.Maj,
+                        0 => ChordQuality.Maj,
                         1 => qualities[0],
                         _ => qualities.Aggregate(Combine),
                     };
 
-                    Console.Write($"{match.Value} => {root}{quality}  ");
+                    Span<byte> midiEvent = [0xAA, (byte)((int)root | (int)quality), 0];
+
+                    // Console.Write($"{match.Value} => {root}{quality} => {Convert.ToHexString(midiEvent)}  ");
+                    Console.Write(Convert.ToHexString(midiEvent));
+                    Console.Write("\t");
                 }
             }
 
