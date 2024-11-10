@@ -12,13 +12,15 @@ internal static class Commandline
         {
             with.HelpWriter = Console.Out;
             with.AutoHelp = true;
+            with.AutoVersion = false;
             with.CaseInsensitiveEnumValues = true;
         });
-        parser.ParseArguments<ExtractOptions, BuildOptions, AddMetronomeOptions, ConvertTabsOptions>(args)
+        parser.ParseArguments<ExtractOptions, BuildOptions, AddMetronomeOptions, ConvertTabsOptions, SwizzleTracksOptions>(args)
             .WithParsed<ExtractOptions>(Extract)
             .WithParsed<BuildOptions>(Build)
             .WithParsed<AddMetronomeOptions>(AddMetronome)
-            .WithParsed<ConvertTabsOptions>(Tabs.ConvertTabs);
+            .WithParsed<ConvertTabsOptions>(Tabs.ConvertTabs)
+            .WithParsed<SwizzleTracksOptions>(Swizzler.Swizzle);
     }
 
     private static void AddMetronome(AddMetronomeOptions obj)

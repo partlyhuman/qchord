@@ -1,6 +1,7 @@
 // ReSharper disable ClassNeverInstantiated.Global
 
 using CommandLine;
+using CommandLine.Text;
 
 namespace Partlyhuman.Qchord;
 
@@ -24,6 +25,21 @@ internal class ExtractOptions
 
     [Option('t', "track", Required = false, HelpText = "Which track number (starting with 1). Omit to export all tracks")]
     public int? TrackNum { get; set; }
+
+    [Usage]
+    public static IEnumerable<Example> Examples
+    {
+        get
+        {
+            yield return new Example("Extract and convert all tracks from a QCard dump to MIDI files in the current directory",
+                new ExtractOptions { QcardPath = "qsc5.bin", Format = Qchord.Format.MIDI });
+            yield return new Example("Extract all tracks from a QCard dump as raw Qchord track data in a specified directory",
+                new ExtractOptions { QcardPath = "qsc5.bin", Format = Qchord.Format.BIN, OutPath = "out/" });
+            yield return new Example(
+                $"Convert track 1 from a QCard dump to MIDI. The --{nameof(Format).ToLower()} option is inferred by the output filename",
+                new ExtractOptions { QcardPath = "qsc5.bin", TrackNum = 1, OutPath = "track1.mid" });
+        }
+    }
 }
 
 [Verb("build", HelpText = "Create a QCard from individual tracks")]
@@ -39,6 +55,18 @@ internal class BuildOptions
                                                         "MIDI: converts MIDI type 0 files to tracks. " +
                                                         "If omitted, inferred from input file extensions")]
     public Format? Format { get; set; }
+
+    [Usage]
+    public static IEnumerable<Example> Examples
+    {
+        get
+        {
+            yield return new Example("Assemble a new QCard image from the given MIDI files",
+                new BuildOptions { QcardPath = "qcard.bin", InputPaths = ["track1.mid", "track2.mid", "track3.mid"] });
+            yield return new Example("Reassemble a QCard image from previously extracted raw Qchord tracks",
+                new BuildOptions { QcardPath = "qcard.bin", InputPaths = ["track1.bin", "track2.bin", "track3.bin"] });
+        }
+    }
 }
 
 [Verb("metronome", HelpText = "Adds a QChord metronome track to a MIDI file. " +
@@ -55,4 +83,21 @@ internal class ConvertTabsOptions
 {
     [Value(0, MetaName = "input", Required = false, HelpText = "Tabs file, omit to accept console or pipe input")]
     public string? InputFile { get; set; }
+}
+
+[Verb("tracks", HelpText = "Batch move events between track numbers in a MIDI type 0 file. " +
+                           "Helps make a MIDI file usable in QChord where some tracks are reserved.")]
+internal class SwizzleTracksOptions
+{
+    [Value(0, MetaName = "input", Required = true, HelpText = "Path to a type 0 MIDI file")]
+    public string InputPath { get; set; } = "";
+
+    [Value(1, MetaName = "output", Required = true, HelpText = "A type 0 MIDI file to create")]
+    public string OutputPath { get; set; } = "";
+
+    [Option('i', HelpText = "One-indexed")]
+    public IEnumerable<int> FromTracks { get; set; } = [];
+
+    [Option('o', HelpText = "One-indexed")]
+    public IEnumerable<int> ToTracks { get; set; } = [];
 }
