@@ -95,9 +95,9 @@ internal class SwizzleTracksOptions
     [Value(1, MetaName = "output", Required = true, HelpText = "A type 0 MIDI file to create")]
     public string OutputPath { get; set; } = "";
 
-    [Option('i', HelpText = "One-indexed")]
+    [Option('i', "from", Required = true, Min = 1, HelpText = "From track, one-indexed, can repeat multiple")]
     public IEnumerable<int> FromTracks { get; set; } = [];
 
-    [Option('o', HelpText = "One-indexed")]
+    [Option('o', "to", Required = true, Min = 1, HelpText = "To track, one-indexed, can repeat multiple")]
     public IEnumerable<int> ToTracks { get; set; } = [];
 }

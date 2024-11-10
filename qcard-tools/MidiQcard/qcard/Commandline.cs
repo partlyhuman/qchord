@@ -13,6 +13,7 @@ internal static class Commandline
             with.HelpWriter = Console.Out;
             with.AutoHelp = true;
             with.AutoVersion = false;
+            with.AllowMultiInstance = true;
             with.CaseInsensitiveEnumValues = true;
         });
         parser.ParseArguments<ExtractOptions, BuildOptions, AddMetronomeOptions, ConvertTabsOptions, SwizzleTracksOptions>(args)

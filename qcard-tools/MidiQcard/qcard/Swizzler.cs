@@ -6,11 +6,6 @@ internal static class Swizzler
     {
         var from = opts.FromTracks.Select(x => x - 1).ToArray();
         var to = opts.ToTracks.Select(x => x - 1).ToArray();
-        if (from.Length <= 0 || to.Length <= 0)
-        {
-            throw new ArgumentException("Expected one or more pairs of track from/to");
-        }
-
         if (from.Length != to.Length)
         {
             throw new ArgumentException("Number of from tracks doesn't match number of to tracks");
