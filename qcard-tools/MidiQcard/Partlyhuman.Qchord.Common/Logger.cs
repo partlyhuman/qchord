@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace Partlyhuman.Qchord.Common;
 
-internal static class Logger
+public static class Logger
 {
     // private static Lazy<bool> IsDebug = new(() => Environment.GetEnvironmentVariable("DEBUG")?.ToLowerInvariant() is "1" or "true");
 

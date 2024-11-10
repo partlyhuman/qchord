@@ -18,7 +18,7 @@ internal class ExtractOptions
     public string QcardPath { get; set; } = "";
 
     [Value(1, MetaName = "output", Required = false, HelpText = "Output filename if one track specified, or directory if all tracks")]
-    public string? OutPath { get; set; }
+    public string? OutputPath { get; set; }
 
     [Option('f', "format", Required = false, HelpText = "BIN: extracts QChord format track data without conversion. MIDI: converts to MIDI type 0.")]
     public Format? Format { get; set; }
@@ -34,10 +34,10 @@ internal class ExtractOptions
             yield return new Example("Extract and convert all tracks from a QCard dump to MIDI files in the current directory",
                 new ExtractOptions { QcardPath = "qsc5.bin", Format = Qchord.Format.MIDI });
             yield return new Example("Extract all tracks from a QCard dump as raw Qchord track data in a specified directory",
-                new ExtractOptions { QcardPath = "qsc5.bin", Format = Qchord.Format.BIN, OutPath = "out/" });
+                new ExtractOptions { QcardPath = "qsc5.bin", Format = Qchord.Format.BIN, OutputPath = "out/" });
             yield return new Example(
                 $"Convert track 1 from a QCard dump to MIDI. The --{nameof(Format).ToLower()} option is inferred by the output filename",
-                new ExtractOptions { QcardPath = "qsc5.bin", TrackNum = 1, OutPath = "track1.mid" });
+                new ExtractOptions { QcardPath = "qsc5.bin", TrackNum = 1, OutputPath = "track1.mid" });
         }
     }
 }
@@ -46,7 +46,7 @@ internal class ExtractOptions
 internal class BuildOptions
 {
     [Value(0, MetaName = "output", Required = true, HelpText = "QCard file to assemble")]
-    public string QcardPath { get; set; } = "";
+    public string OutputPath { get; set; } = "";
 
     [Value(1, Min = 1, MetaName = "inputs", Required = true, HelpText = "One or more MIDI files OR Qchord track files to assemble")]
     public IEnumerable<string> InputPaths { get; set; } = [];
@@ -62,9 +62,9 @@ internal class BuildOptions
         get
         {
             yield return new Example("Assemble a new QCard image from the given MIDI files",
-                new BuildOptions { QcardPath = "qcard.bin", InputPaths = ["track1.mid", "track2.mid", "track3.mid"] });
+                new BuildOptions { OutputPath = "qcard.bin", InputPaths = ["track1.mid", "track2.mid", "track3.mid"] });
             yield return new Example("Reassemble a QCard image from previously extracted raw Qchord tracks",
-                new BuildOptions { QcardPath = "qcard.bin", InputPaths = ["track1.bin", "track2.bin", "track3.bin"] });
+                new BuildOptions { OutputPath = "qcard.bin", InputPaths = ["track1.bin", "track2.bin", "track3.bin"] });
         }
     }
 }
@@ -75,7 +75,10 @@ internal class BuildOptions
 internal class AddMetronomeOptions
 {
     [Value(0, MetaName = "input", Required = true, HelpText = "Path to a type 0 MIDI file")]
-    public string MidiPath { get; set; } = "";
+    public string InputPath { get; set; } = "";
+
+    [Value(1, MetaName = "output", Required = false, HelpText = "Path to a type 0 MIDI file")]
+    public string? OutputPath { get; set; } = null;
 }
 
 [Verb("tabs", HelpText = "Attempt to identify chords in plain text guitar tabs, and replace them with MIDI events in text")]
@@ -98,6 +101,6 @@ internal class SwizzleTracksOptions
     [Option('i', "from", Required = true, Min = 1, HelpText = "From track, one-indexed, can repeat multiple")]
     public IEnumerable<int> FromTracks { get; set; } = [];
 
-    [Option('o', "to", Required = true, Min = 1, HelpText = "To track, one-indexed, can repeat multiple")]
+    [Option('o', "to", Required = true, Min = 1, HelpText = "To track, one-indexed, can repeat multiple. Use '0' to completely strip track.")]
     public IEnumerable<int> ToTracks { get; set; } = [];
 }

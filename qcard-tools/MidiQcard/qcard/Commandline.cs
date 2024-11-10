@@ -24,42 +24,12 @@ internal static class Commandline
             .WithParsed<SwizzleTracksOptions>(Swizzler.Swizzle);
     }
 
-    private static void AddMetronome(AddMetronomeOptions obj)
-    {
-        string inputPath = obj.MidiPath;
-        MidiFileReader midiReader = new(File.ReadAllBytes(inputPath));
-        long duration = midiReader.SumDuration();
-        using MemoryStream secondTrackStream = new();
-        using BinaryWriter secondTrackWriter = new(secondTrackStream);
-
-        Span<byte> headerCopy = midiReader.GetHeaderData().ToArray();
-        UInt16 midiTickDiv = BinaryPrimitives.ReadUInt16BigEndian(headerCopy[4..]);
-        BinaryPrimitives.WriteUInt16BigEndian(headerCopy, 1); // mode 1 = multiple tracks
-
-        Console.WriteLine($"Duration={duration} ticks, quarter note={midiTickDiv} ticks");
-
-        for (long time = 0; time < duration; time += midiTickDiv)
-        {
-            secondTrackWriter.Write(MidiFileReader.WriteVariableLengthQuantity(midiTickDiv));
-            secondTrackWriter.Write([0xB0, 0x2C, 0x7F]);
-        }
-
-        string outputPath = Path.Combine(Path.GetDirectoryName(inputPath)!, $"{Path.GetFileNameWithoutExtension(inputPath)}_metronome.mid");
-        using BinaryWriter fileWriter = new BinaryWriter(File.Create(outputPath));
-
-        Chunk.WriteChunk(fileWriter, headerCopy, Chunk.MidiHeader);
-        Chunk.WriteChunk(fileWriter, midiReader.GetTrackData(), Chunk.MidiTrack);
-        Chunk.WriteChunk(fileWriter, secondTrackStream.AsSpan(), Chunk.MidiTrack);
-
-        Console.WriteLine($"Wrote MIDI type 1 to {outputPath}");
-    }
-
     private static void Build(BuildOptions opts)
     {
         string GetExt(string path) => Path.GetExtension(path).Trim('.').ToLower();
 
         string[] inputPaths = opts.InputPaths.ToArray();
-        string outputPath = opts.QcardPath;
+        string outputPath = opts.OutputPath;
 
         if (GetExt(outputPath) != "bin")
         {
@@ -129,22 +99,15 @@ internal static class Commandline
             throw new ArgumentOutOfRangeException(nameof(opts.TrackNum), $"QCard only has {qCard.TrackCount} tracks");
         }
 
-        if (opts.OutPath is null)
+        if (opts.OutputPath is null)
         {
-            throw new ArgumentException("We need an output file name if you are extracting a single track", nameof(opts.OutPath));
+            throw new ArgumentException("We need an output file name if you are extracting a single track", nameof(opts.OutputPath));
         }
 
-        ArgumentException.ThrowIfNullOrEmpty(opts.OutPath);
-        Format format = opts.Format ?? Path.GetExtension(opts.OutPath).TrimStart('.').ToLowerInvariant() switch
-        {
-            "mid" => Format.MIDI,
-            "midi" => Format.MIDI,
-            "bin" => Format.BIN,
-            _ => throw new ArgumentException(
-                "Cannot infer output format from filename, output either a midi or bin file, or choose a format explicitly"),
-        };
+        ArgumentException.ThrowIfNullOrEmpty(opts.OutputPath);
+        Format format = opts.Format ?? ParseFormat(Path.GetExtension(opts.OutputPath).TrimStart('.'));
 
-        string outputPath = opts.OutPath;
+        string outputPath = opts.OutputPath;
 
         if (File.Exists(outputPath)) File.Delete(outputPath);
         using FileStream fileStream = File.Create(outputPath);
@@ -165,10 +128,19 @@ internal static class Commandline
         }
     }
 
+    private static Format ParseFormat(string str) => str.ToLowerInvariant() switch
+    {
+        "mid" => Format.MIDI,
+        "midi" => Format.MIDI,
+        "bin" => Format.BIN,
+        _ => throw new ArgumentException(
+            "Cannot infer output format from filename, output either a midi or bin file, or choose a format explicitly"),
+    };
+
     private static void ExtractAll(QCard qCard, ExtractOptions opts)
     {
         Format format = opts.Format ?? Format.MIDI;
-        string dir = opts.OutPath ?? ".";
+        string dir = opts.OutputPath ?? ".";
         string basename = Path.GetFileNameWithoutExtension(opts.QcardPath);
         for (int i = 0; i < qCard.TrackCount; i++)
         {
@@ -196,5 +168,36 @@ internal static class Commandline
                     throw new ArgumentOutOfRangeException();
             }
         }
+    }
+
+    private static void AddMetronome(AddMetronomeOptions obj)
+    {
+        string inputPath = obj.InputPath;
+        string outputPath = obj.OutputPath ??
+                            Path.Combine(Path.GetDirectoryName(inputPath)!, $"{Path.GetFileNameWithoutExtension(inputPath)}_metronome.mid");
+        MidiFileReader midiReader = new(File.ReadAllBytes(inputPath));
+        long duration = midiReader.SumDuration();
+        using MemoryStream secondTrackStream = new();
+        using BinaryWriter secondTrackWriter = new(secondTrackStream);
+
+        Span<byte> headerCopy = midiReader.GetHeaderData().ToArray();
+        UInt16 midiTickDiv = BinaryPrimitives.ReadUInt16BigEndian(headerCopy[4..]);
+        BinaryPrimitives.WriteUInt16BigEndian(headerCopy, 1); // mode 1 = multiple tracks
+
+        Console.WriteLine($"Duration={duration} ticks, quarter note={midiTickDiv} ticks");
+
+        for (long time = 0; time < duration; time += midiTickDiv)
+        {
+            secondTrackWriter.Write(MidiFileReader.WriteVariableLengthQuantity(midiTickDiv));
+            secondTrackWriter.Write([0xB0, 0x2C, 0x7F]);
+        }
+
+        using BinaryWriter fileWriter = new BinaryWriter(File.Create(outputPath));
+
+        Chunk.WriteChunk(fileWriter, headerCopy, Chunk.MidiHeader);
+        Chunk.WriteChunk(fileWriter, midiReader.GetTrackData(), Chunk.MidiTrack);
+        Chunk.WriteChunk(fileWriter, secondTrackStream.AsSpan(), Chunk.MidiTrack);
+
+        Console.WriteLine($"Wrote MIDI type 1 to {outputPath}");
     }
 }
