@@ -121,9 +121,12 @@ internal static partial class Tabs
             _ => qualities.Aggregate(Combine),
         };
 
-        Span<byte> midiEvent = [0xAA, (byte)((int)root | (int)quality), 0];
+        byte data = (byte)((int)root | (int)quality);
+        // For sekaiju, want the decimal "note" number to insert
+        return data.ToString("D2");
 
-        // Console.Write($"{match.Value} => {root}{quality} => {Convert.ToHexString(midiEvent)}  "); // DEBUG
-        return Convert.ToHexString(midiEvent);
+        // Span<byte> midiEvent = [0xAA, data, 0];
+        // Logger.Log($"{match.Value} => {root}{quality} => {Convert.ToHexString(midiEvent)}  ");
+        // return Convert.ToHexString(midiEvent);
     });
 }

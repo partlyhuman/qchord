@@ -8,7 +8,7 @@ namespace Partlyhuman.Qchord;
 internal enum Format
 {
     BIN,
-    MIDI,
+    MID,
 }
 
 [Verb("extract", HelpText = "Extract one or all tracks from a QCard")]
@@ -32,7 +32,7 @@ internal class ExtractOptions
         get
         {
             yield return new Example("Extract and convert all tracks from a QCard dump to MIDI files in the current directory",
-                new ExtractOptions { QcardPath = "qsc5.bin", Format = Qchord.Format.MIDI });
+                new ExtractOptions { QcardPath = "qsc5.bin", Format = Qchord.Format.MID });
             yield return new Example("Extract all tracks from a QCard dump as raw Qchord track data in a specified directory",
                 new ExtractOptions { QcardPath = "qsc5.bin", Format = Qchord.Format.BIN, OutputPath = "out/" });
             yield return new Example(
@@ -69,27 +69,20 @@ internal class BuildOptions
     }
 }
 
-[Verb("metronome", HelpText = "Adds a QChord metronome track to a MIDI file. " +
-                              "Currently this relies on an external tool like Sekaiju to merge the resulting multitrack type 1 MIDI " +
-                              "into a single-track type 0 MIDI for further processing.")]
+[Verb("midi-metronome", HelpText = "Adds a QChord metronome track to a MIDI file. " +
+                                   "Currently this relies on an external tool like Sekaiju to merge the resulting multitrack type 1 MIDI " +
+                                   "into a single-track type 0 MIDI for further processing.")]
 internal class AddMetronomeOptions
 {
     [Value(0, MetaName = "input", Required = true, HelpText = "Path to a type 0 MIDI file")]
     public string InputPath { get; set; } = "";
 
-    [Value(1, MetaName = "output", Required = false, HelpText = "Path to a type 0 MIDI file")]
-    public string? OutputPath { get; set; } = null;
+    [Value(1, MetaName = "output", Required = true, HelpText = "Path to a type 0 MIDI file")]
+    public string OutputPath { get; set; } = "";
 }
 
-[Verb("tabs", HelpText = "Attempt to identify chords in plain text guitar tabs, and replace them with MIDI events in text")]
-internal class ConvertTabsOptions
-{
-    [Value(0, MetaName = "input", Required = false, HelpText = "Tabs file, omit to accept console or pipe input")]
-    public string? InputFile { get; set; }
-}
-
-[Verb("tracks", HelpText = "Batch move events between track numbers in a MIDI type 0 file. " +
-                           "Helps make a MIDI file usable in QChord where some tracks are reserved.")]
+[Verb("midi-remap", HelpText = "Batch move events between track numbers in a MIDI type 0 file. " +
+                               "Helps make a MIDI file usable in QChord where some tracks are reserved.")]
 internal class SwizzleTracksOptions
 {
     [Value(0, MetaName = "input", Required = true, HelpText = "Path to a type 0 MIDI file")]
@@ -103,4 +96,11 @@ internal class SwizzleTracksOptions
 
     [Option('o', "to", Required = true, Min = 1, HelpText = "To track, one-indexed, can repeat multiple. Use '0' to completely strip track.")]
     public IEnumerable<int> ToTracks { get; set; } = [];
+}
+
+[Verb("tabs-chords", HelpText = "Attempt to identify chords in plain text guitar tabs, and replace them with MIDI events in text")]
+internal class ConvertTabsOptions
+{
+    [Value(0, MetaName = "input", Required = false, HelpText = "Tabs file, omit to accept console or pipe input")]
+    public string? InputFile { get; set; }
 }

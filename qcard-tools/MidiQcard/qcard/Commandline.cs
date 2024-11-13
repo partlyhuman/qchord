@@ -24,55 +24,37 @@ internal static class Commandline
             .WithParsed<SwizzleTracksOptions>(Swizzler.Swizzle);
     }
 
+    private static string GetExt(string path) => Path.GetExtension(path).Trim('.').ToLower();
+
+    private static Format ParseFormat(string str) => str.ToLowerInvariant() switch
+    {
+        "mid" => Format.MID,
+        "midi" => Format.MID,
+        "bin" => Format.BIN,
+        _ => throw new ArgumentException(
+            "Cannot infer output format from filename, output either a midi or bin file, or choose a format explicitly"),
+    };
+
     private static void Build(BuildOptions opts)
     {
-        string GetExt(string path) => Path.GetExtension(path).Trim('.').ToLower();
-
         string[] inputPaths = opts.InputPaths.ToArray();
         string outputPath = opts.OutputPath;
-
-        if (GetExt(outputPath) != "bin")
-        {
-            throw new ArgumentException("Expect an output file to end in .bin");
-        }
-
-        if (File.Exists(outputPath)) File.Delete(outputPath);
-        using FileStream outputStream = File.Create(outputPath);
-
         Format format = opts.Format ?? Enum.Parse<Format>(GetExt(inputPaths[0]).Replace("mid", "midi"), ignoreCase: true);
 
-        switch (format)
+        var tracks = inputPaths.Select(path => format switch
         {
-            case Format.BIN:
-            {
-                QcardMidiTrack[] tracks = inputPaths
-                    .Select(path => new QcardMidiTrack(File.ReadAllBytes(path)))
-                    .ToArray();
-                var qCard = new QCard(tracks);
-                outputStream.Write(qCard.AsSpan());
-                Console.WriteLine(
-                    $"Assembled {tracks.Length} raw track[s] into {qCard.AsSpan().Length >> 10}kb Qcard {Path.GetFileName(outputPath)}");
-                Console.WriteLine(qCard);
-                break;
-            }
-            case Format.MIDI:
-            {
-                // // DEBUG: dump a single track
-                // var track = new QcardMidiTrack(new MidiFileReader(File.ReadAllBytes(inputPaths[0])));
-                // outputStream.Write(track.AsSpan());
-                // Console.WriteLine($"Wrote single track data to {outputPath}");
+            Format.BIN => new QcardMidiTrack(File.ReadAllBytes(path)),
+            Format.MID => new QcardMidiTrack(new MidiFileReader(File.ReadAllBytes(path))),
+            _ => throw new ArgumentOutOfRangeException()
+        });
+        var qCard = new QCard(tracks.ToArray());
 
-                QcardMidiTrack[] tracks = inputPaths
-                    .Select(midiPath => new QcardMidiTrack(new MidiFileReader(File.ReadAllBytes(midiPath))))
-                    .ToArray();
-                var qCard = new QCard(tracks);
-                outputStream.Write(qCard.AsSpan());
-                Console.WriteLine(
-                    $"Converted {tracks.Length} midi files[s] into {qCard.AsSpan().Length >> 10}kb Qcard {Path.GetFileName(outputPath)}");
-                Console.WriteLine(qCard);
-                break;
-            }
-        }
+        using FileStream outputStream = File.Create(outputPath);
+        outputStream.Write(qCard.AsSpan());
+
+        Console.WriteLine(
+            $"Assembled {qCard.TrackCount} raw track[s] into {qCard.AsSpan().Length >> 10}kb Qcard {Path.GetFileName(outputPath)}");
+        Console.WriteLine(qCard);
     }
 
     private static void Extract(ExtractOptions opts)
@@ -93,89 +75,57 @@ internal static class Commandline
 
     private static void ExtractOne(QCard qCard, int trackNum, ExtractOptions opts)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(trackNum);
-        if (trackNum >= qCard.TrackCount)
+        ArgumentException.ThrowIfNullOrEmpty(opts.OutputPath);
+        if (trackNum < 0 || trackNum >= qCard.TrackCount)
         {
             throw new ArgumentOutOfRangeException(nameof(opts.TrackNum), $"QCard only has {qCard.TrackCount} tracks");
         }
 
-        if (opts.OutputPath is null)
-        {
-            throw new ArgumentException("We need an output file name if you are extracting a single track", nameof(opts.OutputPath));
-        }
-
-        ArgumentException.ThrowIfNullOrEmpty(opts.OutputPath);
-        Format format = opts.Format ?? ParseFormat(Path.GetExtension(opts.OutputPath).TrimStart('.'));
-
         string outputPath = opts.OutputPath;
-
-        if (File.Exists(outputPath)) File.Delete(outputPath);
+        Format format = opts.Format ?? ParseFormat(GetExt(outputPath));
         using FileStream fileStream = File.Create(outputPath);
-        using BinaryWriter writer = new(fileStream);
 
-        switch (format)
+        if (format is Format.MID)
         {
-            case Format.MIDI:
-                qCard[trackNum].WriteMidiFile(writer);
-                Console.WriteLine($"Exported Qcard[{trackNum}] MIDI to {outputPath}");
-                break;
-            case Format.BIN:
-                qCard[trackNum].WriteMidiStream(writer, writeTimes: false, suppressSpecials: true);
-                Console.WriteLine($"Exported QCard[{trackNum}] QChord data to {outputPath}");
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
+            using BinaryWriter writer = new(fileStream);
+            qCard[trackNum].WriteMidiFile(writer);
+            Console.WriteLine($"Exported Qcard[{trackNum}] MIDI to {outputPath}");
+        }
+        else if (format is Format.BIN)
+        {
+            fileStream.Write(qCard[trackNum].AsSpan());
+            // qCard[trackNum].WriteMidiStream(writer, writeTimes: false, suppressSpecials: true);
+            Console.WriteLine($"Exported QCard[{trackNum}] QChord data to {outputPath}");
         }
     }
 
-    private static Format ParseFormat(string str) => str.ToLowerInvariant() switch
-    {
-        "mid" => Format.MIDI,
-        "midi" => Format.MIDI,
-        "bin" => Format.BIN,
-        _ => throw new ArgumentException(
-            "Cannot infer output format from filename, output either a midi or bin file, or choose a format explicitly"),
-    };
-
     private static void ExtractAll(QCard qCard, ExtractOptions opts)
     {
-        Format format = opts.Format ?? Format.MIDI;
+        Format format = opts.Format ?? Format.MID;
         string dir = opts.OutputPath ?? ".";
         string basename = Path.GetFileNameWithoutExtension(opts.QcardPath);
         for (int i = 0; i < qCard.TrackCount; i++)
         {
-            switch (format)
+            string outputPath = Path.Combine(dir, $"{basename}_track{i + 1:d2}.{format.ToString().ToLower()}");
+            using FileStream fileStream = File.Create(outputPath);
+
+            if (format is Format.MID)
             {
-                case Format.MIDI:
-                {
-                    string outputPath = Path.Combine(dir, $"{basename}_track{i + 1:d2}.mid");
-                    using FileStream fileStream = File.Create(outputPath);
-                    using BinaryWriter writer = new(fileStream);
-                    qCard[i].WriteMidiFile(writer);
-                    Console.WriteLine($"Exported {Path.GetFileName(outputPath)}");
-                    break;
-                }
-
-                case Format.BIN:
-                {
-                    string outputPath = Path.Combine(dir, $"{basename}_track{i + 1:d2}.bin");
-                    File.WriteAllBytes(outputPath, qCard[i].AsSpan().ToArray());
-                    Console.WriteLine($"Exported {Path.GetFileName(outputPath)}");
-                    break;
-                }
-
-                default:
-                    throw new ArgumentOutOfRangeException();
+                using BinaryWriter writer = new(fileStream);
+                qCard[i].WriteMidiFile(writer);
             }
+            else if (format is Format.BIN)
+            {
+                fileStream.Write(qCard[i].AsSpan());
+            }
+
+            Console.WriteLine($"Exported {Path.GetFileName(outputPath)}");
         }
     }
 
-    private static void AddMetronome(AddMetronomeOptions obj)
+    private static void AddMetronome(AddMetronomeOptions opts)
     {
-        string inputPath = obj.InputPath;
-        string outputPath = obj.OutputPath ??
-                            Path.Combine(Path.GetDirectoryName(inputPath)!, $"{Path.GetFileNameWithoutExtension(inputPath)}_metronome.mid");
-        MidiFileReader midiReader = new(File.ReadAllBytes(inputPath));
+        MidiFileReader midiReader = new(File.ReadAllBytes(opts.InputPath));
         long duration = midiReader.SumDuration();
         using MemoryStream secondTrackStream = new();
         using BinaryWriter secondTrackWriter = new(secondTrackStream);
@@ -192,12 +142,12 @@ internal static class Commandline
             secondTrackWriter.Write([0xB0, 0x2C, 0x7F]);
         }
 
-        using BinaryWriter fileWriter = new BinaryWriter(File.Create(outputPath));
+        using BinaryWriter fileWriter = new BinaryWriter(File.Create(opts.OutputPath));
 
         Chunk.WriteChunk(fileWriter, headerCopy, Chunk.MidiHeader);
         Chunk.WriteChunk(fileWriter, midiReader.GetTrackData(), Chunk.MidiTrack);
         Chunk.WriteChunk(fileWriter, secondTrackStream.AsSpan(), Chunk.MidiTrack);
 
-        Console.WriteLine($"Wrote MIDI type 1 to {outputPath}");
+        Console.WriteLine($"Wrote MIDI type 1 to {opts.OutputPath}. Please flatten to type 0 before converting to Qcard.");
     }
 }
