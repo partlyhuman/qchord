@@ -39,7 +39,7 @@ internal static class Commandline
     {
         string[] inputPaths = opts.InputPaths.ToArray();
         string outputPath = opts.OutputPath;
-        Format format = opts.Format ?? Enum.Parse<Format>(GetExt(inputPaths[0]).Replace("mid", "midi"), ignoreCase: true);
+        Format format = opts.Format ?? ParseFormat(GetExt(inputPaths[0]));
 
         var tracks = inputPaths.Select(path => format switch
         {
@@ -142,8 +142,7 @@ internal static class Commandline
             secondTrackWriter.Write([0xB0, 0x2C, 0x7F]);
         }
 
-        using BinaryWriter fileWriter = new BinaryWriter(File.Create(opts.OutputPath));
-
+        using BinaryWriter fileWriter = new(File.Create(opts.OutputPath));
         Chunk.WriteChunk(fileWriter, headerCopy, Chunk.MidiHeader);
         Chunk.WriteChunk(fileWriter, midiReader.GetTrackData(), Chunk.MidiTrack);
         Chunk.WriteChunk(fileWriter, secondTrackStream.AsSpan(), Chunk.MidiTrack);
