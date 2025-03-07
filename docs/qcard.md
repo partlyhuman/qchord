@@ -108,7 +108,7 @@ The *Chord quality* is represented by the upper digit 1-7. It's easiest to visua
 | **6** | 1 | 1 | 0 | Minor 7th    |
 | **7** | 1 | 1 | 1 | Augmented    |
 
-![Qcard Chord buttons](chord-buttons.png)
+![Qcard Chord buttons](img/chord-buttons.png)
 
 The *Root note* is represented by the lower digit 0-B.
 
