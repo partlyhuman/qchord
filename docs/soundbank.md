@@ -27,7 +27,7 @@ Appears as array in Program ROM @10A9h
 
 ## Creating a SAM9713 ROM from a 94B Soundbank
 
-> This is now possible! See [video of the first successful test](https://www.youtube.com/watch?v=fGnvm3H4Y6E) where I created a ROM for SAM9713 injected with the GMBK9708 Dream/Roland sound set.
+> This is now possible for GSSBK040, GSSBK080! See [video of the first successful test](https://www.youtube.com/watch?v=fGnvm3H4Y6E) where I created a ROM for SAM9713 injected with the GMBK9708 Dream/Roland sound set.
 
 A ROM for SAM chips combine firmware for the target chip and a specially compiled and relocated 94B sound font. Using the SAM tools we can now make working ROMs for the SAM9713 / Q-Chord.
 
@@ -40,7 +40,7 @@ The 94B sound bank must fit in 1MB, and should be a complete General MIDI set (i
 5. Use Sound Bank > New > Empty Sound Bank to create a new sound bank and save it to the working directory, like `C:\TEMP\TEMP.94K`
 6. Copy your 94B sound bank and name it after your project e.g. `C:\TEMP\TEMP.94B`. As long as you don't compile the new soundbank, the tool assumes that this is the output of compiling your sound bank and you can perform these steps without having a source `94K`
 7. Use Tran[s]fer > Binary File to start preparing a ROM
-8. Use a Start Address of `0x3400` and a Memory Size of `0x80000` and hit OK. The addresses are in 16-bit words, so this refers to byte `0x6800` in the 1MB ROM. This relocates all the absolute addresses and sets things up to place the sound bank data in the same position as it was in the GMS960800B ROM.
+8. Use a Start Address of `0x3400` and a Memory Size of `0x80000` and hit OK. The addresses are in *16-bit words*, so this refers to byte `0x6800` in the 1MB ROM. This relocates all the addresses of the instrument parameters, and sets things up to place the sound bank data in the same position as it was in the GMS960800B ROM.
 9. Now, combine the firmware from 0h—6800h of the GMS960800B dump, and the sound bank generated in `C:\TEMP\TEMP.BIN`. You can use `dd`, or even more basic with `cat`:
 
 ```
@@ -49,6 +49,25 @@ truncate firmware.bin --size 26624
 cat firmware.bin TEMP.BIN > newrom.bin
 truncate newrom.bin --size 1048576
 ```
+
+## Creating a SAM9713 ROM from any sound font
+
+I've been able to use a combination of tools, with some commonalities to the "SF2 to 94B" process below.
+
+* SF2 -> DLS: Awave Studio
+  * !! Compiling the 94L->94K will fail down the line if you don't ensure that the wave samples are saved out with DOS 8.3 compatible names, so spend some time renaming samples to be 8 alphanumeric chars only
+  * Export as DLS *Level 1*
+* DLS -> 94I, 94L: DLSREAD.EXE
+* 94L -> 94K: Guillemot ISIS Soundbank Manager MemManager.EXE
+  * This was the biggest challenge, finding software that will compile a .94L to a .94K!
+  * I managed to run this without hardware by adding specific registry keys, and patching the driver DLL. Tools in /soundfont/tools/.
+  * Ensure you install the registry keys by opening `MemManager Registry Keys.reg`. You may also then want to run Regedit and update the install path in `HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Guillemot\Maxi Studio ISIS\Memory Manager\General\Application Path`.
+  * If you run into errors with not found WAVs here, most likely the WAV does not have a valid DOS 8.3 name, remember these are old old tools.
+* 94K -> 94B: MemManager.EXE or 94WBANK.EXE
+* 94B -> BIN: 94WBANK.EXE
+  * Use the steps above, except if you did this process you have a valid .94K so you don't have to fool it, you can open it instead of creating a new file
+
+Unfortunately all NON-DREAM soundfonts I've tried thus far will actually play the correct instrument but panic and hang during the first note (possibly at the first loop point?). Work continues.
 
 ## Findings
 
