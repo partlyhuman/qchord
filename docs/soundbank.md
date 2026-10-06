@@ -47,7 +47,6 @@ The 94B sound bank must fit in 1MB, and should be a complete General MIDI set (i
 cp GMS960800B.bin firmware.bin
 truncate firmware.bin --size 26624
 cat firmware.bin TEMP.BIN > newrom.bin
-truncate newrom.bin --size 1048576
 ```
 
 ## Creating a SAM9713 ROM from any sound font
@@ -63,11 +62,19 @@ I've been able to use a combination of tools, with some commonalities to the "SF
   * I managed to run this without hardware by adding specific registry keys, and patching the driver DLL. Tools in /soundfont/tools/.
   * Ensure you install the registry keys by opening `MemManager Registry Keys.reg`. You may also then want to run Regedit and update the install path in `HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Guillemot\Maxi Studio ISIS\Memory Manager\General\Application Path`.
   * If you run into errors with not found WAVs here, most likely the WAV does not have a valid DOS 8.3 name, remember these are old old tools.
-* 94K -> 94B: MemManager.EXE or 94WBANK.EXE
-* 94B -> BIN: 94WBANK.EXE
+* 94K -> 94B: MemManager.EXE
+* 94B -> BIN: 94WBANK.EXE from the 97PNP2 tools CD
   * Use the steps above, except if you did this process you have a valid .94K so you don't have to fool it, you can open it instead of creating a new file
 
-Unfortunately all NON-DREAM soundfonts I've tried thus far will actually play the correct instrument but panic and hang during the first note (possibly at the first loop point?). Work continues.
+Unfortunately all NON-DREAM soundfonts I've tried thus far will actually play the correct instrument but panic and hang during the first note (possibly at the first loop point?). But....
+
+## Closing the gap and adding Omnichord sound to the Q-Chord
+
+Hanging is due to envelope settings that exist in DLS level 1 but not in the 94* specifications. Fixing this up in the .94b is possible with a script.
+
+Finally, injecting instruments from one .94b into another .94b is done with a script. Primarily this has to relocate pointers in the RELOC chunk. The 94b format is documented albeit complex, RIFF-based, and fairly easily parsed.
+
+An Omnichord instrument was created in Awave Studio from the [Chordian](https://github.com/Jan125/sfz.chordian) single-note sample data; not using the .sfz itself as that replicates chording, backing, etc. in the instrument. We create that as program 26, the elec. guitar that's the Q-Chord's default. Then we follow above steps to convert DLS->94L->94K->94B. Use scripts to fixup the envelopes and replace program 26 in the original `GSSBK080.94b`. Then continue steps above to convert 94B->BIN, re-assemble with the original firmware, and burn.
 
 ## Findings
 
@@ -83,15 +90,7 @@ This shows up in the datasheet for the Atmel SAM9713, an all-in-one MIDI control
 > 
 > — 8 Mbit CleanWave® GMS970800B
 
-So this was basically an all-in-one solution from Atmel.
-
-The note is amusing:
-
-> (**) GMS960800B with express permission of Roland Corporation, special licensing conditions apply. WARNING: GMS960800B may not be installed in any musical instrument except for electronic keyboards and synthesizers that have a sale price of less than $75 FOB. Using this product in the manufacture of musical instruments or selling this product for use in a musical instrument (other than the exceptions noted above) is a violation of the intellectual property rights of Roland Corporation and will result in liability for infringement.
-
-Seems like 1. this design isn't very custom, Suzuki had a kind of drop-in solution and 2. they are in violation of Roland's licensing terms since it's apparently designed SPECIFICALLY for cheap shitty toys!
-
-Also found in the binary is the ASCII `GSSBK080` which is the name of the source sound font used in the chipset (confirmed).
+So this was basically an all-in-one solution from Dream/Atmel. Also found in the binary is the ASCII `GSSBK080` which is the name of the source sound font used in the chipset (confirmed).
 
 
 ## SAM9713
@@ -172,9 +171,6 @@ The other ROM is GMS970800, now dumped. Seems to correlate to GMBK9708.94B. `GMB
 
 Unfortunately, it is not a drop-in replacement, likely because as we now know, the dump contains firmware+soundbank, and the GMS970800 dumped was for use with SAM9503. The correct part for SAM9713 is probably GMS970800*B*.
 
-In an case, now we can 
-
-
 # Conversions
 
 ## DLS to 94B
@@ -239,16 +235,3 @@ https://www.vogons.org/viewtopic.php?f=62&t=56535
 Verified copying to a MX29F800 works, with a small tweak:
 
 Ensure pins 43/WE# and 44/RESET# are pulled HIGH. These are NC in the PCB so jumper them to 33/BYTE.
-
-## Roadmap to generate Omnichord ROM
-
-1. Extract firmware and master assembly of 94b + firmware into ROMs
-2. Use impulse tracker instruments from https://github.com/msx2plus/msx_iti_collection
-3. Assemble in Awave Studio
-4. Export DLS level 1
-5. Use either Ed!son (EMS64) or Maxi Utilities (works without card?) or DREAM Bank Editor (97PNP) to convert to 94B
-
-OR,
-3. Extract samples with Awave or other
-4. Go straight into DREAM Bank Editor & DREAM Instrument editor and create the instruments from scratch
-5. Make a 94B directly
