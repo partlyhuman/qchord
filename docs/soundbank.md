@@ -76,6 +76,130 @@ Finally, injecting instruments from one .94b into another .94b is done with a sc
 
 An Omnichord instrument was created in Awave Studio from the [Chordian](https://github.com/Jan125/sfz.chordian) single-note sample data; not using the .sfz itself as that replicates chording, backing, etc. in the instrument. We create that as program 26, the elec. guitar that's the Q-Chord's default. Then we follow above steps to convert DLS->94L->94K->94B. Use scripts to fixup the envelopes and replace program 26 in the original `GSSBK080.94b`. Then continue steps above to convert 94B->BIN, re-assemble with the original firmware, and burn.
 
+## Choosing which instruments to replace
+
+After creating an Omnichord soundbank consisting of an accompaniment and a strum instrument, where do we want to map them on our Q-Chord?
+
+I think most would want access to the instrument and backing using the builtin strumplate voices and rhythms. There ARE alternatives, the Q-Chord lets you choose any GM instrument to strum with, though the interface is tedious, and we could supply a different rhythm via Q-card, but, for builtins:
+
+Channels 14 15 16 are used for strumplate. The "Strumplate Voices" controls this. Those instrumen assignments are shown above. The Q-chord uses channels 3 4 5 6 7 8 9 for accompaniment. The accompanying rhythm determines which instruments are assigned to these channels. Auto Chord is analogous to the Omnichord backing chords, and it always uses channel 5. So, the instrument for accompaniment is going to depend on the rhythm selection.
+
+I captured MIDI to determine the instuments used in the built-in rhythms. Channel 5 is the "Auto Chord" channel. The others are "Chord Plus" channels. Note these are in hex.
+```
+                            PROGRAM#    CHANNEL#
+BOSSA NOVA      
+ 000C67C8   1  --     C2    19    --    3  ---  PC: Steel Str Guitar  
+ 000C67C9   1  --     C3    00    --    4  ---  PC: Acc. Grand Piano  
+ 000C67CB   1  --     C4    31    --    5  ---  PC: String Ens 2      
+ 000C67CD   1  --     C5    00    --    6  ---  PC: Acc. Grand Piano  
+ 000C67CE   1  --     C6    0B    --    7  ---  PC: Vibraphone        
+ 000C67D0   1  --     C7    62    --    8  ---  PC: FX 3(crystal)     
+ 000C67D1   1  --     C8    20    --    9  ---  PC: Acoustic Bass     
+
+
+COUNTRY 
+ 000C6B4C   1  --     C2    15    --    3  ---  PC: Accordian         
+ 000C6B4D   1  --     C3    00    --    4  ---  PC: Acc. Grand Piano  
+ 000C6B4F   1  --     C4    12    --    5  ---  PC: Rock Organ        
+ 000C6B50   1  --     C5    00    --    6  ---  PC: Acc. Grand Piano  
+ 000C6B52   1  --     C6    19    --    7  ---  PC: Steel Str Guitar  
+ 000C6B54   1  --     C7    00    --    8  ---  PC: Acc. Grand Piano  
+ 000C6B55   1  --     C8    21    --    9  ---  PC: Elec Bass-finger  
+
+
+DANCE
+ 000C6D27   1  --     C2    3D    --    3  ---  PC: Brass Section     
+ 000C6D29   1  --     C3    51    --    4  ---  PC: Lead2(sawtooth)   
+ 000C6D2A   1  --     C4    1B    --    5  ---  PC: Elec Cln Guitar   
+ 000C6D2C   1  --     C5    3D    --    6  ---  PC: Brass Section     
+ 000C6D2D   1  --     C6    51    --    7  ---  PC: Lead2(sawtooth)   
+ 000C6D2F   1  --     C7    1C    --    8  ---  PC: Elec Mute Guitar  
+ 000C6D31   1  --     C8    26    --    9  ---  PC: Synth Bass 1      
+
+JAZZ
+ 000C7015   1  --     C2    0B    --    3  ---  PC: Vibraphone        
+ 000C7017   1  --     C3    18    --    4  ---  PC: Nylon Str Guitar  
+ 000C7018   1  --     C4    30    --    5  ---  PC: String Ens 1      
+ 000C701A   1  --     C5    00    --    6  ---  PC: Acc. Grand Piano  
+ 000C701B   1  --     C6    0B    --    7  ---  PC: Vibraphone        
+ 000C701D   1  --     C7    00    --    8  ---  PC: Acc. Grand Piano  
+ 000C701F   1  --     C8    20    --    9  ---  PC: Acoustic Bass     
+
+
+NEW AGE
+ 000C720A   1  --     C2    58    --    3  ---  PC: Pad 1(new age)    
+ 000C720B   1  --     C3    1B    --    4  ---  PC: Elec Cln Guitar   
+ 000C720D   1  --     C4    18    --    5  ---  PC: Nylon Str Guitar  
+ 000C720E   1  --     C5    31    --    6  ---  PC: String Ens 2      
+ 000C7210   1  --     C6    59    --    7  ---  PC: Pad 2(warm)       
+ 000C7212   1  --     C7    64    --    8  ---  PC: FX 5(brightness)  
+ 000C7213   1  --     C8    21    --    9  ---  PC: Elec Bass-finger  
+
+
+MARCH
+ 000C73B2   1  --     C2    48    --    3  ---  PC: Piccolo           
+ 000C73B4   1  --     C3    47    --    4  ---  PC: Clarinet          
+ 000C73B6   1  --     C4    38    --    5  ---  PC: Trumpet           
+ 000C73B7   1  --     C5    00    --    6  ---  PC: Acc. Grand Piano  
+ 000C73B9   1  --     C6    3A    --    7  ---  PC: Tuba              
+ 000C73BA   1  --     C7    48    --    8  ---  PC: Piccolo           
+ 000C73BC   1  --     C8    21    --    9  ---  PC: Elec Bass-finger  
+
+
+WALTZ
+ 000C755A   1  --     C2    49    --    3  ---  PC: Flute             
+ 000C755C   1  --     C3    30    --    4  ---  PC: String Ens 1      
+ 000C755E   1  --     C4    15    --    5  ---  PC: Accordian         
+ 000C755F   1  --     C5    2D    --    6  ---  PC: Pizz Strings      
+ 000C7561   1  --     C6    62    --    7  ---  PC: FX 3(crystal)     
+ 000C7562   1  --     C7    00    --    8  ---  PC: Acc. Grand Piano  
+ 000C7564   1  --     C8    20    --    9  ---  PC: Acoustic Bass     
+
+
+BALLAD
+ 000C76EB   1  --     C2    62    --    3  ---  PC: FX 3(crystal)     
+ 000C76ED   1  --     C3    1C    --    4  ---  PC: Elec Mute Guitar  
+ 000C76EF   1  --     C4    05    --    5  ---  PC: Electric Piano 2  
+ 000C76F0   1  --     C5    31    --    6  ---  PC: String Ens 2      
+ 000C76F2   1  --     C6    18    --    7  ---  PC: Nylon Str Guitar  
+ 000C76F3   1  --     C7    3C    --    8  ---  PC: French Horn       
+ 000C76F5   1  --     C8    21    --    9  ---  PC: Elec Bass-finger  
+
+
+ROCK
+ 000C78AE   1  --     C2    3D    --    3  ---  PC: Brass Section     
+ 000C78B0   1  --     C3    00    --    4  ---  PC: Acc. Grand Piano  
+ 000C78B1   1  --     C4    12    --    5  ---  PC: Rock Organ        
+ 000C78B3   1  --     C5    1D    --    6  ---  PC: Overdrive Guitar  
+ 000C78B4   1  --     C6    3D    --    7  ---  PC: Brass Section     
+ 000C78B6   1  --     C7    1E    --    8  ---  PC: Distortn Guitar   
+ 000C78B8   1  --     C8    21    --    9  ---  PC: Elec Bass-finger  
+
+
+BLUES SHUFFLE
+ 000C7A70   1  --     C2    1C    --    3  ---  PC: Elec Mute Guitar  
+ 000C7A72   1  --     C3    00    --    4  ---  PC: Acc. Grand Piano  
+ 000C7A73   1  --     C4    00    --    5  ---  PC: Acc. Grand Piano  
+ 000C7A75   1  --     C5    12    --    6  ---  PC: Rock Organ        
+ 000C7A76   1  --     C6    1B    --    7  ---  PC: Elec Cln Guitar   
+ 000C7A78   1  --     C7    00    --    8  ---  PC: Acc. Grand Piano  
+ 000C7A7A   1  --     C8    21    --    9  ---  PC: Elec Bass-finger  
+```
+
+With that, I think these are two good options.
+
+CONFIGURATION 1 - Immediate Omnichord mode, just hit EZ Play.
+
+> Strumplate = Guitar, Rhythm = Bossanova
+
+> Omni strum -> Guitar 26, Omni chord -> 49 String Ensemble 2
+
+CONFIGURATION 2 - Preserve Qchord defaults, good rhythm match, organ sounds horrible to strum normally, so we're not missing much.
+
+> Strumplate = Organ, Rhythm = New Age
+
+> Omni strum -> Church Organ 19, Omni chord -> 24 Nylon Str Guitar (for New Age)
+
 ## Findings
 
 Dump of ROM contains the ASCII text
