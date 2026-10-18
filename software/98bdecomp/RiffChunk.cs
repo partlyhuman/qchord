@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static System.Text.Encoding;
 
@@ -65,16 +63,21 @@ unsafe struct PriorityData
     }
 }
 
+[StructLayout(LayoutKind.Sequential)]
 readonly struct InstrumentTableData
 {
     public readonly UInt16 ProgramNumber;
     public readonly byte VariationNumber;
     public readonly byte ParamPageNumber;
-    public readonly UInt16 ParamPagePointer;
+    public readonly UInt16 ParamPointer;
+
+    public override string ToString() =>
+        $"{nameof(InstrumentTableData)} program {ProgramNumber} (hex {ProgramNumber:x}) variation {VariationNumber} in PARA @ 0x{ParamPointer:x04}";
 }
 
 record struct InstrumentSplitDefinitionParsed(byte StartNote, byte StartDyn, byte EndNote, byte EndDyn, bool Repeat);
 
+[StructLayout(LayoutKind.Sequential)]
 readonly struct InstrumentSplitDefinition
 {
     public readonly UInt16 SplitStartData;
@@ -114,15 +117,27 @@ readonly struct InstrumentSplitDefinition
         return all[..i];
     }
 
+    public static IEnumerable<InstrumentSplitDefinition> ReadAllSplits(BinaryReader reader)
+    {
+        while (true)
+        {
+            var splitDef = reader.ReadStruct<InstrumentSplitDefinition>();
+            Console.WriteLine(splitDef);
+            yield return splitDef;
+            if (splitDef.IsEnd()) yield break;
+        }
+    }
+
     public override string ToString() =>
         $"Split {Note(SplitStartData)}/{Dyn(SplitStartData)}...{Note(SplitStopData)}/{Dyn(SplitStopData)} @ 0x{SoundPointer:x04}";
 }
 
-readonly struct Split1
+[StructLayout(LayoutKind.Sequential)]
+readonly struct Sound
 {
-    private readonly UInt16 PtrtabPointer;
+    public readonly UInt16 PtrtabPointer;
 
-    private readonly UInt16 Status;
+    public readonly UInt16 Status;
 
     public int CountEnvelopes() => ((Status >> 5) & 0b11) switch
     {
@@ -177,6 +192,7 @@ readonly struct Split1
      */
 }
 
+[StructLayout(LayoutKind.Sequential)]
 readonly struct ObjectCounts
 {
     private readonly UInt16 bitfield;
@@ -189,13 +205,11 @@ readonly struct ObjectCounts
     public int CountMX() => ToInt3Bit(bitfield >> 5);
     public int CountMY() => ToInt3Bit(bitfield >> 2);
 
-    public override string ToString()
-    {
-        return $"ObjectCounts {bitfield:b016}\n" +
-               $"{CountMA1()} MA1, {CountMA2()} MA2, {CountMB()} MB, {CountMX()} MX, {CountMY()} MY";
-    }
+    public override string ToString() =>
+        $"ObjectCounts {bitfield:b016}: {CountMA1()} MA1, {CountMA2()} MA2, {CountMB()} MB, {CountMX()} MX, {CountMY()} MY";
 }
 
+[StructLayout(LayoutKind.Sequential)]
 readonly struct MA1
 {
     private readonly UInt16 field0;
@@ -235,6 +249,7 @@ record MA2(UInt16 Field0, UInt16 Field1, UInt16? Field2 = null)
     }
 }
 
+[StructLayout(LayoutKind.Sequential)]
 readonly struct MB
 {
     private readonly UInt16 field0;
@@ -246,6 +261,7 @@ readonly struct MB
     }
 }
 
+[StructLayout(LayoutKind.Sequential)]
 readonly struct MX
 {
     private readonly UInt16 field0;
@@ -286,6 +302,7 @@ record MY(UInt16 Field0, UInt16? Field1 = null)
     }
 }
 
+[StructLayout(LayoutKind.Sequential)]
 readonly struct Modulator
 {
     private readonly UInt16 field0;
@@ -297,54 +314,99 @@ readonly struct Modulator
     }
 }
 
-record Envelope(string Description)
+record Envelope(UInt16 Header, Envelope.Segment[] Segments)
 {
-    public struct Header
+    public enum EnvelopeSegment
     {
-        public readonly UInt16 Field0;
+        Continue = 0,
+        Loop = 1,
+        SustainPoint = 2,
+        End = 3,
+        EndAtSustainPoint = 4,
     }
 
-    public struct Segment
+    public record struct Segment(EnvelopeSegment Type, UInt16 Field0, UInt16 Field1);
+
+    private const int MaxSegments = 8;
+
+    private static IEnumerable<Segment> ReadSegments(BinaryReader input)
     {
-        public readonly UInt16 Field0;
-        public readonly UInt16 Field1;
+        int i = 0;
+        for (; i < MaxSegments; i++)
+        {
+            UInt16 segment = input.ReadUInt16();
+            EnvelopeSegment type = (EnvelopeSegment)(segment >> 13);
+            switch (type)
+            {
+                case EnvelopeSegment.Loop:
+                    yield return new Segment(type, segment, input.ReadUInt16());
+                    break;
+                case EnvelopeSegment.Continue:
+                case EnvelopeSegment.SustainPoint:
+                    yield return new Segment(type, segment, default);
+                    break;
+                case EnvelopeSegment.End:
+                case EnvelopeSegment.EndAtSustainPoint:
+                    yield return new Segment(type, segment, default);
+                    yield break;
+                default:
+                    throw new ArgumentOutOfRangeException($"Encountered code ${type} out of range");
+            }
+        }
+        // I guess an envelope implicitly ends at 8 segments?
     }
 
     public static Envelope ReadDynamic(BinaryReader input)
     {
         UInt16 header = input.ReadUInt16();
+        var segments = ReadSegments(input).ToArray();
+        return new Envelope(header, segments);
+    }
 
+    public override string ToString() => $"{nameof(Envelope)} with {Segments.Length} segments";
+}
+
+[StructLayout(LayoutKind.Sequential)]
+public struct PtrTab
+{
+    public readonly UInt16 Mix1Value;
+    public readonly UInt16 Mix1Address;
+    public readonly UInt16 Mix2Value;
+    public readonly UInt16 Mix2Address;
+    public readonly UInt16 Mix3Value;
+    public readonly UInt16 Mix3Address;
+    public readonly UInt16 Mix4Value;
+    public readonly UInt16 Mix4Address;
+    public readonly UInt16 _Unused1;
+    public readonly UInt16 Mod0Pointer;
+    public readonly UInt16 Mod1Pointer;
+    public readonly UInt16 _Unused2;
+
+    private int CountMixesUsed()
+    {
         int i = 0;
-        for (; ; i++)
-        {
-            // if (i >= 8)
-            // {
-            //     // throw new InvalidOperationException("More than 8 segments in envelope");
-            //     break;
-            // }
-            
-            UInt16 segment = input.ReadUInt16();
-            int code = (segment >> 13);
+        if (Mix1Value != 0) i++;
+        if (Mix2Value != 0) i++;
+        if (Mix3Value != 0) i++;
+        if (Mix4Value != 0) i++;
+        return i;
+    }
 
-            if (code is < 0 or > 4)
-            {
-                throw new IndexOutOfRangeException($"Expected code 0-4, found {code}");
-            }
-            
-            if (code == 0)
-            {
-                continue;
-            }
+    public override string ToString() => $"{nameof(PtrTab)} with {CountMixesUsed()} mixes";
+}
 
-            if (code == 1)
-            {
-                UInt16 jumpBack = input.ReadUInt16();
-            }
+[StructLayout(LayoutKind.Sequential, Size = 6)]
+public struct RelocEntry
+{
+    public UInt32 Pointer;
+    public PointerType Type;
+    public byte Block;
 
-            // Only 0 continues
-            break;
-        }
-
-        return new Envelope($"Envelope with {i} segments");
+    public enum PointerType : byte
+    {
+        Param = 0,
+        MA2Page = 1,
+        MA2Loop = 2,
+        MBEnd = 3,
     }
 }
